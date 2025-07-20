@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 async def on_startup(bot: Bot):
     """Выполняется при старте бота."""
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all) # Раскомментировать для полной очистки БД
+        #await conn.run_sync(Base.metadata.drop_all) # Раскомментировать для полной очистки БД
         await conn.run_sync(Base.metadata.create_all)
     logging.info("База данных готова к работе.")
     # Тут можно добавить отправку сообщения админу о запуске бота
