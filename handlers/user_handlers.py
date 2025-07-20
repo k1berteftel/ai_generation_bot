@@ -129,7 +129,7 @@ async def example_menu(selected_model: str) -> tuple:
     url = model.get("manual")
     example = model.get("examples")[0]
     text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
-            f'<u>{example.get("name") + "\n" if example.get("name") else ""}</u>'
+            #f'<u>{example.get("name") + "\n" if example.get("name") else ""}</u>'
             f'{example.get("prompt")}\n\n🔗Инструкция: {url}')
     media = FSInputFile(path=example.get('media'))
     keyboard = get_exemple_keyboard(url)
