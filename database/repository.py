@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from typing import Optional, Any, List, Sequence, Type, Dict
 
 from sqlalchemy import select, update, delete, func
@@ -78,7 +78,7 @@ class UserRepository:
             await session.commit()
 
     async def grant_unlim_access(self, user_id: int) -> None:
-        await self.update_user(user_id, is_unlim=True, unlim_time=datetime.now(UTC))
+        await self.update_user(user_id, is_unlim=True, unlim_time=datetime.now())
 
 
     async def export_user_ids_to_file(self) -> str:
@@ -142,7 +142,7 @@ class UserRepository:
                 return False
 
 
-            if datetime.now(UTC) <= user.unlim_time + timedelta(weeks=1):
+            if datetime.now() <= user.unlim_time + timedelta(weeks=1):
                 return True
             else:
 

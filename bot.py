@@ -17,6 +17,7 @@ from handlers.user_handlers import user_router
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
+
 async def on_startup(bot: Bot):
     """Выполняется при старте бота."""
     async with engine.begin() as conn:
