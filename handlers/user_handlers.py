@@ -316,10 +316,16 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     assistant_id, thread_id = await get_assistant_and_thread()
     await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     await state.set_state(DialogStates.waiting_for_prompt)
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='❌Закончить диалог', callback_data='back_main')]])
-    text = '<b>✅Создан новый диалог с chat gpt</b>\nЗадавайте вопросы'
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
+    text = ('🤖 SUPER GPT активен!\n\nЯ готов ответить на любые вопросы и помочь с идеями'
+            '\nСпроси что-нибудь прямо сейчас!')
     await callback.message.delete()
-    await callback.message.answer(text=text, reply_markup=keyboard, parse_mode='HTML')
+    await callback.message.answer_photo(
+        photo=FSInputFile(path='medias/start_gpt.jpg'),
+        caption=text,
+        reply_markup=keyboard,
+        parse_mode='HTML'
+    )
 
 
 @user_router.message(DialogStates.waiting_for_prompt)
@@ -335,7 +341,7 @@ async def answer_gpt(message: types.Message, state: FSMContext):
     state_data = await state.get_data()
     assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text='❌Закончить диалог', callback_data='back_main')]])
+        inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
     prompt = message.text if message.text else message.caption
     answer = await get_text_answer(prompt, assistant_id, thread_id)
     if answer is None:
