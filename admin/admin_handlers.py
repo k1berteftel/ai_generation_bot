@@ -4,7 +4,6 @@ import os
 import sys
 import time
 
-import aiomysql
 from aiogram import Router, types, F, Dispatcher, Bot
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
