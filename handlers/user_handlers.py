@@ -594,7 +594,6 @@ async def handle_prompt(
     # Загружаем изображения один раз, если они есть
     if any(msg.photo for msg in album):
         image_urls = await download_and_upload_images(bot, album)
-
     if model_key == 'Sora - Генерация изображений':
         cost = IMAGE_GPT_COST
         params["model_name"] = MODELS[model_key]
@@ -626,7 +625,6 @@ async def handle_prompt(
             image_field = MODEL_IMAGE_FIELD.get(model_key)
             if image_field:
                 params[image_field] = image_urls[0]
-
     # 3. Списываем баланс
     if not cost or not await db.user.process_generation(user_id, cost):
         await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",

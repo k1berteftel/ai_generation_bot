@@ -7,7 +7,7 @@ MODELS = {
     "Seedance 1 Lite — видео по тексту": "seedance-1-lite",
     "Minimax - Видео по фото": "minimax-video-01",
     # "Luma Ray-2": "luma/ray-2-720p",
-    'Sora - Генерация изображении': 'gpt-4o-image'
+    'Sora - Генерация изображений': 'gpt-4o-image'
 }
 
 MODELS_EXAMPLE_OBJECT = {
