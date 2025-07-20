@@ -1,0 +1,10 @@
+asyncpg
+aiogram
+sqlalchemy
+greenlet
+cryptography
+yookassa
+python-dotenv
+requests
+replicate
+Pillow>=10.0.0
