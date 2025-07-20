@@ -26,7 +26,7 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
 def get_account_keyboard(user_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="↗️ Поделиться", switch_inline_query=f"start={user_id}"),
+            InlineKeyboardButton(text="↗️ Поделиться", url=f"http://t.me/share/url?url=https://t.me/ai_generation_robot?start={user_id}"),
             #InlineKeyboardButton(text="🎁 Подарить Veo3", callback_data="gift"),
         ],
         #[InlineKeyboardButton(text="🎬 Бесплатные генерации", callback_data="free_gens")],
