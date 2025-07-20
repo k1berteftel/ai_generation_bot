@@ -16,7 +16,7 @@ MODELS_EXAMPLE_OBJECT = {
         'description': 'Делает видео и звук по тексту. Может работать с фото.',
         'examples':  [
             {
-                'name': 'Ведущий и бабушка',
+                'name': 'Ведущий и бабушка\n',
                 'media': 'medias/veo/veo_ex_1.mp4',
                 'content_type': 'video',
                 'prompt': '<blockquote expandable><b>Ведущий с микрофоном спрашивает у бабушки на улицах на русском языке. '
