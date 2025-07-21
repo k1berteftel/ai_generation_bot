@@ -152,7 +152,7 @@ def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMark
             ]
         )
 
-    if selected_model == 'Sora - Генерация изображении':
+    if selected_model == 'Sora - Генерация изображений':
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],

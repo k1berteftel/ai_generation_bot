@@ -92,7 +92,7 @@ async def prompt_menu(user_id, selected_model):
         keyboard = get_prompt_keyboard(user_id, selected_model)
         return text, keyboard
 
-    if selected_model == 'Sora - Генерация изображении':
+    if selected_model == 'Sora - Генерация изображений':
         prompt_lines = [
             "💬 Напиши промпт для генерации изображения.",
             "Вы также можете прикрепить фото для референса (необязательно).",
@@ -656,7 +656,7 @@ async def handle_prompt(
         safe_prompt = html.escape(params["prompt"])
 
         # 5. Отправляем результат
-        if model_key == 'Sora - Генерация изображении':
+        if model_key == 'Sora - Генерация изображений':
             media_group = [InputMediaPhoto(media=url) for url in result_urls]
             if media_group:
                 media_group[0].caption = f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>"

@@ -73,7 +73,7 @@ MODELS_EXAMPLE_OBJECT = {
         ],
         'manual': 'https://t.me/minimax2025'
     },
-    'Sora - Генерация изображении': {
+    'Sora - Генерация изображений': {
         'name': '<b>gpt-4o-image</b>',
         'description': 'Генерация изображении',
         'examples': [
@@ -104,7 +104,7 @@ MODEL_DESCRIPTIONS = {
     "Kling v2.1 — видео текст+фото": "Инструкция:   https://t.me/kling_promt2025 \nГенерирует видео по тексту или фото.",
     "Seedance 1 Lite — видео по тексту": "Инструкция:    https://t.me/seedance25 \n\nБыстрое видео по тексту.",
     "Minimax - Видео по фото": "Инструкция:  https://t.me/minimax2025 \n\nПростое видео по тексту. Может работать с фото.",
-    "Sora - Генерация изображении": "Инструкция:  https://t.me/sora_2026 \n\n Генерация изображении"
+    "Sora - Генерация изображений": "Инструкция:  https://t.me/sora_2026 \n\n Генерация изображении"
 }
 
 MODEL_IMAGE_FIELD = {
@@ -113,7 +113,7 @@ MODEL_IMAGE_FIELD = {
     "Kling v2.1 — видео текст+фото": "start_image",
     "Minimax - Видео по фото": "subject_reference",
     "Seedance 1 Lite — видео по тексту": "image",
-    'Sora - Генерация изображении': 'image_urls'
+    'Sora - Генерация изображений': 'image_urls'
     # "Luma Ray-2": "image",
 }
 

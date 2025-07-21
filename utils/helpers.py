@@ -14,7 +14,7 @@ from data.constants import DURATION_PRICES
 
 def calculate_generation_cost(model: str, duration: str, pixverse_mode: str = None,
                               resolution: str = None) -> int | None:
-    if model == 'Sora - Генерация изображении':
+    if model == 'Sora - Генерация изображений':
         from data.constants import IMAGE_GPT_COST
         return IMAGE_GPT_COST
 
