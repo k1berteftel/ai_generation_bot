@@ -1,4 +1,5 @@
 # handlers/user_handlers.py
+import datetime
 import html
 import os
 import asyncio
@@ -30,7 +31,7 @@ from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
     download_and_upload_images, check_user_op_single
-from utils.chat_gpt import get_text_answer, get_assistant_and_thread
+from utils.chat_gpt import get_text_answer, get_assistant_and_thread, generate_image
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
@@ -189,8 +190,7 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
     if is_new and ref_id:
         try:
             ref_id = int(ref_id)
-            await db.user.increase_value(ref_id, 'generations', 10)
-            await db.user.increase_value(ref_id, 'ref_count', 1)
+            await state.update_data(ref_id=ref_id)
         except Exception:
             ...
 
@@ -578,6 +578,7 @@ async def handle_prompt(
         album: list[types.Message]
 ):
     user_id = message.from_user.id
+    user = await db.user.get_user(user_id)
     model_key = USER_MODELS.get(user_id)
     if not model_key:
         await message.answer("Сначала выбери модель через главное меню.")
@@ -632,22 +633,26 @@ async def handle_prompt(
             if image_field:
                 params[image_field] = image_urls[0]
     # 3. Списываем баланс
-    if not cost or not await db.user.process_generation(user_id, cost):
-        await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",
-                             reply_markup=balance_choose_menu())
-        return
 
     await state.clear()
 
     status_message = "⏳ Принял. Отправляю запрос..."
     if image_urls:
         status_message = "⏳ Принял. Загрузил фото и отправляю на обработку..."
-
+    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+        await db.user.update_user(user_id, last_generation=datetime.datetime.now())
+        cost = 0
+    elif not cost or not await db.user.process_generation(user_id, cost):
+        await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",
+                             reply_markup=balance_choose_menu())
+        return
     msg = await message.answer(f"{status_message} Это будет стоить {cost} 💎")
-
     try:
         # 4. Отправляем запрос в API
-        result_urls = await generate_on_nexus(params)
+        if model_key == 'Sora - Генерация изображений':
+            result_urls = await generate_image(image_urls, prompt)
+        else:
+            result_urls = await generate_on_nexus(params)
 
         if not result_urls:
             raise RuntimeError("API не вернул результат.")
@@ -655,18 +660,25 @@ async def handle_prompt(
         await msg.delete()
         safe_prompt = html.escape(params["prompt"])
 
-        # 5. Отправляем результат
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text='⬅️ На главное меню', callback_data='back_main')]])
         if model_key == 'Sora - Генерация изображений':
             media_group = [InputMediaPhoto(media=url) for url in result_urls]
             if media_group:
                 media_group[0].caption = f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>"
                 media_group[0].parse_mode = 'HTML'
-                await bot.send_media_group(chat_id=user_id, media=media_group)
+                message_to_copy = await bot.send_media_group(chat_id=user_id, media=media_group)
+                await bot.copy_messages(
+                    chat_id=-1002858090617,
+                    from_chat_id=message.chat.id,
+                    message_ids=[msg.message_id for msg in message_to_copy]
+                )
         else:  # Для всех видеомоделей, включая Veo
             video_url = result_urls[0]
             caption = f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n<b>Модель:</b> {model_key}"
             await message.answer_video(video_url, caption=caption, parse_mode='HTML')
 
+        await message.answer('Вы можете вернуться на главное меню', reply_markup=keyboard)
         await db.statistic.increment_counters(model_key, all_time=1, now_month=1)
 
     except Exception as e:
@@ -707,11 +719,17 @@ async def successful_payment_handler(message: Message, db: Database):
 
 
 @user_router.callback_query(F.data.startswith('check_op_'))
-async def check_op_user_func(call: types.CallbackQuery, db: Database, bot: Bot):
+async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSMContext, bot: Bot):
     op_id = int(call.data.replace('check_op_', ''))
     op_data = await db.subscription.get_channel_by_id(op_id)
     answer = await check_user_op_single(bot, op_data.chat_id, call.from_user.id)
     if answer:
+        data = await state.get_data()
+        ref_id = data.get('ref_id')
+        if ref_id:
+            await db.user.increase_value(ref_id, 'generations', 10)
+            await db.user.increase_value(ref_id, 'ref_count', 1)
+        await db.user.update_user(passed=True)
         await db.subscription.increment_subs_count(op_id)
         await call.message.edit_text('Вы можете пользоваться ботом! ✅')
     else:

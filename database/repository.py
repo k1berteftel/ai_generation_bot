@@ -57,6 +57,11 @@ class UserRepository:
             user = await session.get(User, user_id)
             return user
 
+    async def get_users(self, **kwargs) -> Sequence[User]:
+        async with self.session_factory() as session:
+            users = await session.scalars(select(User).where(**kwargs))
+        return users.fetchall()
+
     async def update_user(self, user_id: int, **kwargs: Any) -> None:
 
         stmt = update(User).where(User.id == user_id).values(**kwargs)

@@ -14,7 +14,8 @@ def admin_panel_menu():
             KeyboardButton(text="ОП"),
         ],
         [
-            KeyboardButton(text='Рекламные ссылки')
+            KeyboardButton(text='Рекламные ссылки'),
+            KeyboardButton(text='Рассылки')
         ],
         [
             KeyboardButton(text='Ключи для апи'),
@@ -153,5 +154,14 @@ def cancel_copy_message() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="❌ Отмена", callback_data="admin:start_msg:cancel")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def confirm_malling_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='Начать рассылку', callback_data='confirm_malling')],
+            [InlineKeyboardButton(text='Отмена', callback_data='cancel_malling')]
+        ]
+    )
 
 

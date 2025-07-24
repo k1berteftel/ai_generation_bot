@@ -12,11 +12,15 @@ STATS_ICONS = {
 }
 
 
-def format_statistics_report(stats_data: dict, total_users: int) -> str:
+def format_statistics_report(stats_data: dict, users: list) -> str:
     """
     Формирует большой текстовый отчет по статистике.
     """
     users_stats = stats_data.get('users', {})
+    refs = 0
+    for user in users:
+        if user.ref_id:
+            refs += 1
 
     stats_blocks = []
     for name, data in stats_data.items():
@@ -34,10 +38,12 @@ def format_statistics_report(stats_data: dict, total_users: int) -> str:
         )
         stats_blocks.append(block)
 
+
     final_report = texts.STATISTICS_REPORT_TEMPLATE.format(
-        total_users=total_users,
+        total_users=len(users),
         users_now_month=users_stats.get('now_month', 0),
         users_past_month=users_stats.get('past_month', 0),
+        refs=refs,
         stats_block="\n".join(stats_blocks)
     )
 

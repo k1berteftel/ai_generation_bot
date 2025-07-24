@@ -21,7 +21,10 @@ class User(Base):
     completed: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     ref_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     ref_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    passed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="0")
     ad_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    last_generation: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, server_default=None)
     is_unlim: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     unlim_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 

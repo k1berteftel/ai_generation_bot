@@ -24,3 +24,8 @@ class StartMessage(StatesGroup):
 
 class SetStartMessageDelay(StatesGroup):
     delay = State()
+
+
+class Malling(StatesGroup):
+    waiting_for_message = State()
+    confirm_malling = State()

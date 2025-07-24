@@ -1,13 +1,13 @@
 # data/constants.py
 
 MODELS = {
+    'Sora - Генерация изображений': 'gpt-4o-image',
     "Veo3 - видео сценарию": "veo-3-quality",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 Lite — видео по тексту": "seedance-1-lite",
     "Minimax - Видео по фото": "minimax-video-01",
     # "Luma Ray-2": "luma/ray-2-720p",
-    'Sora - Генерация изображений': 'gpt-4o-image'
 }
 
 MODELS_EXAMPLE_OBJECT = {

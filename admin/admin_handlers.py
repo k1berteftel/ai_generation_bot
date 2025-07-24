@@ -14,14 +14,13 @@ from APIKeyManager.apikeymanager import APIKeyManager
 from admin import texts
 from admin.admin_keyboard import admin_panel_menu, op_panel_button, cancel_op_panel_button, ad_urls_panel_button, \
     cancel_urls_panel_button, ad_url_one_panel_button, op_url_one_bottom_panel, cancel_key_panel_button, \
-    api_keys_panel_button, cancel_copy_message, start_message_menu_keyboard
+    api_keys_panel_button, cancel_copy_message, start_message_menu_keyboard, confirm_malling_keyboard
 from admin.admin_states import OpState, NameUrl, StartMessage, \
-    UpdateLinkOp, ApiKeyStates, SetStartMessageDelay
+    UpdateLinkOp, ApiKeyStates, SetStartMessageDelay, Malling
 from admin.services import format_statistics_report
 
 from config import list_admins
 from database.database import Database
-
 
 
 admin_router = Router()
@@ -31,13 +30,54 @@ admin_router.message.filter(F.from_user.id.in_(list_admins))
 admin_router.callback_query.filter(F.from_user.id.in_(list_admins))
 
 
-
-
 @admin_router.message(Command('admin'))
 async def admin_panel_entry(message: types.Message):
     await message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
 
 
+@admin_router.message(F.text == 'Рассылки')
+async def get_mail(message: types.Message, state: FSMContext):
+    await state.set_state(Malling.waiting_for_message)
+    await message.answer('Пришлите сообщение которое вы хотели бы разослать')
+
+
+@admin_router.message(F.text, Malling.waiting_for_message)
+async def show_confirm_malling(message: types.Message, state: FSMContext):
+    await state.clear()
+    await state.update_data(msg_id=message.message_id, chat_id=message.chat.id)
+    await message.answer('Данное сообщение будет разослано всем пользователям бота, вы подтверждаете рассылку?',
+                         reply_markup=confirm_malling_keyboard())
+
+
+@admin_router.callback_query(F.data == 'confirm_malling')
+async def start_malling(clb: types.CallbackQuery, db: Database, state: FSMContext):
+    users = await db.user.get_users()
+    message = await clb.message.answer('Началась рассылка сообщения')
+    state_data = await state.get_data()
+    msg_id = state_data.get('msg_id')
+    chat_id = state_data.get('chat_id')
+    counter = 0
+    for user in users:
+        try:
+            await clb.bot.copy_message(
+                chat_id=user.id,
+                message_id=msg_id,
+                from_chat_id=chat_id
+            )
+            if not user.active:
+                await db.user.update_user(user.id, active=True)
+            counter += 1
+        except Exception:
+            await db.user.update_user(user.id, active=False)
+    await message.delete()
+    await clb.message.answer(f'Рассылка успешно завершена, сообщение получило {counter} пользователей из {len(users)}')
+    await state.clear()
+    await clb.message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
+
+
+async def cancel_malling(clb: types.CallbackQuery, state: FSMContext):
+    await clb.answer('Рассылка была успешно отменена')
+    await clb.message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
 
 
 async def _show_op_menu(message: types.Message, db: Database, is_edit: bool = False):
@@ -145,14 +185,13 @@ async def set_op_link_and_create_handler(message: types.Message, state: FSMConte
 async def statistics_handler(message: types.Message, db: Database):
     await message.answer("⏳ Собираю статистику...")
 
-    total_users = await db.user.get_total_user_count()
-
     stat_names = [
         'users', 'Kling v2.1 — видео текст+фото', 'Seedance 1 Lite — видео по тексту', 'Minimax - Видео по фото', 'Sora - Генерация изображений', 'Veo3 - видео сценарию', 'income'
     ]
     stats_data = await db.statistic.get_multiple_stats(stat_names)
+    users = await db.user.get_users()
 
-    report_text = format_statistics_report(stats_data, total_users)
+    report_text = format_statistics_report(stats_data, users)
 
     await message.answer(report_text, parse_mode='HTML')
 
@@ -174,6 +213,15 @@ async def _show_single_ad_url_stats(call: types.CallbackQuery, db: Database, nam
         await call.answer("Ссылка не найдена", show_alert=True)
         return
 
+    users = await db.user.get_users(ad_url=ad_url_data.name, passed=True)
+    active = 0
+    not_passed = 0
+    for user in users:
+        if user.active:
+            active += 1
+        if not user.passed:
+            not_passed += 1
+
     text = texts.AD_URL_STATS_TEMPLATE.format(
         name=ad_url_data.name,
         all_users=ad_url_data.all_users,
@@ -181,6 +229,10 @@ async def _show_single_ad_url_stats(call: types.CallbackQuery, db: Database, nam
         not_unique_users=ad_url_data.not_unique_users,
         requests=ad_url_data.requests,
         income=ad_url_data.income,
+        active=active,
+        not_active=len(users) - active,
+        passed=len(users),
+        not_passen=not_passed,
         bot_name=config.BOT_NAME
     )
     if is_update:
@@ -195,11 +247,12 @@ async def ad_urls_handler(message: types.Message, db: Database):
     ad_urls = await db.ad_url.get_all()
     await message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls))
 
-#
+
 @admin_router.callback_query(F.data == 'ad_urls_admin_panel')
 async def ad_urls_func_call(call: types.CallbackQuery, db: Database):
     ad_urls = await db.ad_url.get_all()
     await call.message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls))
+
 
 @admin_router.message(F.text == 'Юзеры Бд')
 async def return_users_bd_func(message: types.Message, db: Database):
@@ -213,6 +266,7 @@ async def return_users_bd_func(message: types.Message, db: Database):
 async def create_ad_url_handler(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text(texts.PROMPT_FOR_AD_URL_NAME, reply_markup=cancel_urls_panel_button())
     await state.set_state(NameUrl.name)
+
 
 @admin_router.message(NameUrl.name)
 async def set_ad_url_name_handler(message: types.Message, state: FSMContext, db: Database):

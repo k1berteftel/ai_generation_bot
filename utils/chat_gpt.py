@@ -1,8 +1,22 @@
+import os
+
 import httpx
+import base64
+import random
+import string
 
 from openai import AsyncOpenAI
 
+from utils.helpers import upload_image_to_imgbb
+
 import config
+
+def get_random_id() -> str:
+    string.ascii_letter = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    simvols = ''
+    for i in range(0, 8):
+        simvols += str(random.choice(string.ascii_letters))
+    return simvols
 
 
 client = AsyncOpenAI(
@@ -56,3 +70,55 @@ async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str |
             return message.content[0].text.value
     else:
         return None
+
+
+async def generate_image(photos: list[str], prompt: str) -> list[str]:
+    photos_data = []
+    for photo in photos:
+        photos_data.append(
+            {
+                "type": "input_image",
+                "image_url": photo,
+            }
+        )
+    try:
+
+        response = await client.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                    {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": prompt},
+                        *photos_data
+                    ]
+                }
+            ],
+            tools=[{"type": "image_generation", "input_fidelity": "high"}],
+        )
+        print(f'Общая стоимость: {response.usage.total_tokens}')
+        image_data = [
+            output.result
+            for output in response.output
+            if output.type == "image_generation_call"
+        ]
+        photos = []
+        for image in image_data:
+            image_base64 = image
+            file_path = f"{get_random_id()}.png"
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(image_base64))
+            try:
+                photo_url = await upload_image_to_imgbb(file_path)
+            except Exception:
+                continue
+            if photo_url:
+                photos.append(photo_url)
+            try:
+                os.remove(file_path)
+            except Exception:
+                ...
+        return photos
+
+    except Exception as e:
+        raise Exception(f"Ошибка при генерации изображения: {str(e)}")

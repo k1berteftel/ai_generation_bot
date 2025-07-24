@@ -10,6 +10,8 @@ STATISTICS_REPORT_TEMPLATE = """
 Пришло в этом месяце: {users_now_month}
 Пришло в прошлом месяце: {users_past_month}
 
+Всего приглашено по реферальной системе: {refs}
+
 {stats_block}
 """
 
@@ -27,9 +29,14 @@ AD_URL_STATS_TEMPLATE = """
 Всего перешло по ссылке: {all_users}
 Новые пользователи: {unique_users}
 Старые пользователи: {not_unique_users}
+Живые: {active}
+Мертвые: {not_active}
 
 Всего запросов: {requests}
 Куплено на: {income} руб
+
+Прошло ОП: {passed}
+Не прошло ОП: {not_passed}
 
 Ссылка: https://t.me/{bot_name}?start=ad_url_start_{name}
 """
