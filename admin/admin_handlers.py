@@ -232,7 +232,7 @@ async def _show_single_ad_url_stats(call: types.CallbackQuery, db: Database, nam
         active=active,
         not_active=len(users) - active,
         passed=len(users),
-        not_passen=not_passed,
+        not_passed=not_passed,
         bot_name=config.BOT_NAME
     )
     if is_update:
