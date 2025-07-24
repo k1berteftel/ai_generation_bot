@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, Any, List, Sequence, Type, Dict
 
-from sqlalchemy import select, update, delete, func, text
+from sqlalchemy import select, update, delete, func, and_, text
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -59,7 +59,8 @@ class UserRepository:
 
     async def get_users(self, **kwargs) -> Sequence[User]:
         async with self.session_factory() as session:
-            users = await session.scalars(select(User).where(text(*kwargs)))
+            filters = [getattr(User, key) == value for key, value in kwargs.items()]
+            users = await session.scalars(select(User).where(*filters))
         return users.fetchall()
 
     async def update_user(self, user_id: int, **kwargs: Any) -> None:
