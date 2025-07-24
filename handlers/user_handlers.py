@@ -729,7 +729,7 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
         if ref_id:
             await db.user.increase_value(ref_id, 'generations', 10)
             await db.user.increase_value(ref_id, 'ref_count', 1)
-        await db.user.update_user(passed=True)
+        await db.user.update_user(call.from_user.id, passed=True)
         await db.subscription.increment_subs_count(op_id)
         await call.message.edit_text('Вы можете пользоваться ботом! ✅')
     else:
