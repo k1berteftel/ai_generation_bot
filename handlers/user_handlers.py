@@ -76,18 +76,22 @@ class DialogStates(StatesGroup):
     waiting_for_prompt = State()
 
 
-async def prompt_menu(user_id, selected_model):
+async def prompt_menu(user_id, selected_model, db: Database):
     """Формирует текст и клавиатуру для меню ввода промпта."""
     durations = MODEL_DURATIONS.get(selected_model, ["5 сек"])
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
+    user = await db.user.get_user(user_id)
+    free = False
+    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+        free = True
 
     if selected_model == 'Veo3 - видео сценарию':
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
             "Вы можете прикрепить фото для референса.",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(VEO_COST)}</b>"
+            f"Стоимость: <b>{get_crystal_price_str(VEO_COST if not free else 0)}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -98,7 +102,7 @@ async def prompt_menu(user_id, selected_model):
             "💬 Напиши промпт для генерации изображения.",
             "Вы также можете прикрепить фото для референса (необязательно).",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(IMAGE_GPT_COST)}</b>"
+            f"Стоимость: <b>{get_crystal_price_str(IMAGE_GPT_COST if not free else 0)}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -117,7 +121,7 @@ async def prompt_menu(user_id, selected_model):
         prompt_lines.append(f"Режим: <b>{'Smooth' if pixverse_mode == 'smooth' else 'Normal'}</b>")
 
     cost = calculate_generation_cost(selected_model, current_duration, pixverse_mode, resolution)
-    prompt_lines.append(f"Стоимость: <b>{get_crystal_price_str(cost)}</b>")
+    prompt_lines.append(f"Стоимость: <b>{get_crystal_price_str(cost if not free else 0)}</b>")
 
     text = "\n".join(prompt_lines)
     keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -366,12 +370,12 @@ async def open_students_menu(callback: types.CallbackQuery):
 
 
 @user_router.callback_query(F.data == "start_gen")  # функция начала генерации
-async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext):
+async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     model = USER_MODELS.get(user_id)
 
     USER_MODELS[callback.from_user.id] = model
-    text, keyboard = await prompt_menu(callback.from_user.id, model)
+    text, keyboard = await prompt_menu(callback.from_user.id, model, db)
     await state.set_state(GenStates.waiting_for_prompt)
     await callback.message.delete()
     await callback.message.answer(text, reply_markup=keyboard, parse_mode='HTML')
@@ -388,7 +392,7 @@ async def cb_choose_aspect(callback: types.CallbackQuery, state: FSMContext):
 
 
 @user_router.callback_query(F.data.startswith("aspect_"), GenStates.waiting_for_aspect)
-async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext):
+async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext, db: Database):
     aspect = callback.data.replace("aspect_", "")
     user_id = callback.from_user.id
     USER_ASPECT_RATIO[user_id] = aspect
@@ -397,7 +401,7 @@ async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext):
         await cb_back_main(callback, state)  # Возврат в главное меню, если модель не выбрана
         return
 
-    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model)
+    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
     await callback.message.edit_text(prompt_text, reply_markup=prompt_kb, parse_mode='HTML')
     await state.set_state(GenStates.waiting_for_prompt)
 
@@ -411,7 +415,7 @@ async def cb_choose_duration(callback: types.CallbackQuery):
 
 
 @user_router.callback_query(F.data.startswith("set_duration_"), GenStates.waiting_for_prompt)
-async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext):
+async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     selected_model = USER_MODELS.get(user_id)
     if not selected_model: return
@@ -419,23 +423,23 @@ async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext):
     d = callback.data.replace("set_duration_", "")
     USER_DURATIONS[user_id] = d
 
-    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model)
+    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
     await callback.message.edit_text(prompt_text, reply_markup=prompt_kb, parse_mode='HTML')
 
 
 @user_router.callback_query(F.data == "back_to_prompt")
-async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext):
+async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     selected_model = USER_MODELS.get(user_id)
     if not selected_model: return
 
-    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model)
+    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
     await callback.message.edit_text(prompt_text, reply_markup=prompt_kb, parse_mode='HTML')
     await state.set_state(GenStates.waiting_for_prompt)
 
 
 @user_router.callback_query(F.data == "toggle_pixverse_mode", GenStates.waiting_for_prompt)
-async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMContext):
+async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     selected_model = USER_MODELS.get(user_id)
     if not selected_model: return
@@ -443,7 +447,7 @@ async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMConte
     current = USER_PIXVERSE_MODE.get(user_id, "smooth")
     USER_PIXVERSE_MODE[user_id] = "normal" if current == "smooth" else "smooth"
 
-    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model)
+    prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
     await callback.message.edit_text(prompt_text, reply_markup=prompt_kb, parse_mode='HTML')
 
 
