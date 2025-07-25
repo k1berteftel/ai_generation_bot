@@ -94,7 +94,7 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
                     ]
                 }
             ],
-            tools=[{"type": "image_generation", "input_fidelity": "high"}],
+            tools=[{"type": "image_generation", "input_fidelity": "low"}],
         )
         print(f'Общая стоимость: {response.usage.total_tokens}')
         image_data = [
