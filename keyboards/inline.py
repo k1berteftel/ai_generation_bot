@@ -189,8 +189,13 @@ def get_exemple_keyboard(url: str):
     return keyboard
 
 
-def subscribe_button_keyboard(channel_id: int, link_chat: str) -> InlineKeyboardMarkup:
+def subscribe_button_keyboard(channels: list[list]) -> InlineKeyboardMarkup:
+    buttons = []
+    for channel in channels:
+        buttons.append(
+            [InlineKeyboardButton(text='Подписаться', url=channel[1])]
+        )
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='Подписаться', url=link_chat)],
-        [InlineKeyboardButton(text='Подписался ✔️', callback_data=f'check_op_{channel_id}')]
+        *buttons,
+        [InlineKeyboardButton(text='Подписался ✔️', callback_data=f'check_op')]
     ])

@@ -76,7 +76,7 @@ async def check_user_op(db, bot: Bot, user_id: int):
     all_op = await db.subscription.get_all_channels()
     if not all_op:
         return None
-
+    channels = []
     async with aiohttp.ClientSession() as session:
         for pare in all_op:
             if ':' in pare.chat_id:
@@ -90,13 +90,15 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
                 status = data["ok"]
                 if not status:
-                    return pare.id, pare.link_channel
+                    channels.append([pare.id, pare.link_channel])
 
             else:
 
                 member = await bot.get_chat_member(pare.chat_id, user_id)
                 if member.status == 'left':
-                    return pare.id, pare.link_channel
+                    channels.append([pare.id, pare.link_channel])
+    if channels:
+        return channels
 
     return None
 

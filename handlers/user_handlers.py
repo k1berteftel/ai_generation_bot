@@ -81,23 +81,23 @@ async def prompt_menu(user_id, selected_model, db: Database):
     durations = MODEL_DURATIONS.get(selected_model, ["5 сек"])
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
-    user = await db.user.get_user(user_id)
-    free = False
-    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-        free = True
 
     if selected_model == 'Veo3 - видео сценарию':
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
             "Вы можете прикрепить фото для референса.",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(VEO_COST if not free else 0)}</b>"
+            f"Стоимость: <b>{get_crystal_price_str(VEO_COST)}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
         return text, keyboard
 
     if selected_model == 'Sora - Генерация изображений':
+        user = await db.user.get_user(user_id)
+        free = False
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            free = True
         prompt_lines = [
             "💬 Напиши промпт для генерации изображения.",
             "Вы также можете прикрепить фото для референса (необязательно).",
@@ -121,7 +121,7 @@ async def prompt_menu(user_id, selected_model, db: Database):
         prompt_lines.append(f"Режим: <b>{'Smooth' if pixverse_mode == 'smooth' else 'Normal'}</b>")
 
     cost = calculate_generation_cost(selected_model, current_duration, pixverse_mode, resolution)
-    prompt_lines.append(f"Стоимость: <b>{get_crystal_price_str(cost if not free else 0)}</b>")
+    prompt_lines.append(f"Стоимость: <b>{get_crystal_price_str(cost)}</b>")
 
     text = "\n".join(prompt_lines)
     keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -210,9 +210,10 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
     op_answer = await check_user_op(db, bot, message.from_user.id)
     if op_answer is not None:
         await message.answer(
-            'Подпишитесь на канал чтобы пользоваться ботом!',
-            reply_markup=subscribe_button_keyboard(op_answer[0], op_answer[1])
+            'Подпишитесь на каналы чтобы пользоваться ботом!',
+            reply_markup=subscribe_button_keyboard(op_answer)
         )
+        await state.update_data(not_passed=[channel[0] for channel in op_answer])
         return
 
     user_id = message.from_user.id
@@ -613,7 +614,11 @@ async def handle_prompt(
     if any(msg.photo for msg in album):
         image_urls = await download_and_upload_images(bot, album)
     if model_key == 'Sora - Генерация изображений':
-        cost = IMAGE_GPT_COST
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            await db.user.update_user(user_id, last_generation=datetime.datetime.now())
+            cost = 0
+        else:
+            cost = IMAGE_GPT_COST
         params["model_name"] = MODELS[model_key]
         if image_urls:
             params["image_urls"] = image_urls
@@ -650,9 +655,6 @@ async def handle_prompt(
     status_message = "⏳ Принял. Отправляю запрос..."
     if image_urls:
         status_message = "⏳ Принял. Загрузил фото и отправляю на обработку..."
-    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-        await db.user.update_user(user_id, last_generation=datetime.datetime.now())
-        cost = 0
     elif not cost or not await db.user.process_generation(user_id, cost):
         await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",
                              reply_markup=balance_choose_menu())
@@ -729,19 +731,20 @@ async def successful_payment_handler(message: Message, db: Database):
     await message.answer('✅ Оплата прошла успешно. Ваш баланс пополнен!')
 
 
-@user_router.callback_query(F.data.startswith('check_op_'))
+@user_router.callback_query(F.data == 'check_op')
 async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSMContext, bot: Bot):
-    op_id = int(call.data.replace('check_op_', ''))
-    op_data = await db.subscription.get_channel_by_id(op_id)
-    answer = await check_user_op_single(bot, op_data.chat_id, call.from_user.id)
-    if answer:
+    channels = await db.subscription.get_all_channels()
+    answer = await check_user_op(db, bot, call.from_user.id)
+    if answer is None:
         data = await state.get_data()
         ref_id = data.get('ref_id')
         if ref_id:
             await db.user.increase_value(ref_id, 'generations', 10)
             await db.user.increase_value(ref_id, 'ref_count', 1)
         await db.user.update_user(call.from_user.id, passed=True)
-        await db.subscription.increment_subs_count(op_id)
+        op_ids = data.get('not_passed')
+        for op_id in op_ids:
+            await db.subscription.increment_subs_count(op_id)
         await call.message.edit_text('Вы можете пользоваться ботом! ✅')
     else:
-        await call.answer('Вы не подписались на канал!', show_alert=True)
+        await call.answer('Вы не подписались на каналы!', show_alert=True)
