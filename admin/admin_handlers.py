@@ -224,9 +224,7 @@ async def _show_single_ad_url_stats(call: types.CallbackQuery, db: Database, nam
 
     text = texts.AD_URL_STATS_TEMPLATE.format(
         name=ad_url_data.name,
-        all_users=ad_url_data.all_users,
         unique_users=ad_url_data.unique_users,
-        not_unique_users=ad_url_data.not_unique_users,
         requests=ad_url_data.requests,
         income=ad_url_data.income,
         active=active,

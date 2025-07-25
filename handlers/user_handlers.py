@@ -217,12 +217,19 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
     is_unlim = await db.user.check_unlim_status(message.from_user.id)
 
     markup = get_main_menu_keyboard()
+
     if not is_new:
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            free_generation = '🎁Вам доступна одна бесплатная генерация'
+        else:
+            next_generation = user.last_generation + datetime.timedelta(days=1)
+            free_generation = f'Следующая бесплатная генерация будет доступна <em>{next_generation.strftime("%Y-%m-%d %H:%M")}</em>🕜'
         text = (
             "<b>👋 Добро пожаловать в Super GPT!</b>\n\n"
             "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей "
             "и экспериментировать с искусственным интеллектом!\n\n"
-            f"Ваш баланс: <b>{user.generations if not is_unlim else '∞'}</b> 💎\n\n"
+            f"Ваш баланс: <b>{user.generations if not is_unlim else '∞'}</b> 💎\n"
+            f'{free_generation}\n\n'
             f"<b>📌 Совет:</b> Чтобы всегда иметь к нам быстрый доступ — закрепите бота в верхней части списка чатов. "
             f"Так вы не упустите ни одной возможности творить с помощью AI!"
             "Что хочешь сгенерировать сегодня?"

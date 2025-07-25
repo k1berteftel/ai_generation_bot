@@ -26,9 +26,7 @@ STATS_BLOCK_TEMPLATE = """
 AD_URL_STATS_TEMPLATE = """
 Реферальная ссылка: <b>{name}</b>
 
-Всего перешло по ссылке: {all_users}
-Новые пользователи: {unique_users}
-Старые пользователи: {not_unique_users}
+Всего перешло по ссылке: {unique_users}
 Живые: {active}
 Мертвые: {not_active}
 
