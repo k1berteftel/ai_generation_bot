@@ -11,6 +11,7 @@ from utils.helpers import upload_image_to_imgbb
 
 import config
 
+
 def get_random_id() -> str:
     string.ascii_letter = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     simvols = ''
@@ -58,6 +59,8 @@ async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str |
     )
     info = (f'Стоимость запроса: {run.usage.completion_tokens}\nСтоимость промпта: {run.usage.prompt_tokens}'
             f'\nОбщая стоимость: {run.usage.total_tokens}')
+    with open('upload.txt', 'a', encoding='utf-8') as file:
+        file.write('Запрос на диалог: ' + info + '\n\n')
     print(info)
     print(run)
     print(run.status)
@@ -96,7 +99,9 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
             ],
             tools=[{"type": "image_generation", "input_fidelity": "low"}],
         )
-        print(f'Общая стоимость: {response.usage.total_tokens}')
+        info = f'Общая стоимость: {response.usage.total_tokens}'
+        with open('upload.txt', 'a', encoding='utf-8') as file:
+            file.write('Запрос на генерацию: ' + info + '\n\n')
         image_data = [
             output.result
             for output in response.output
