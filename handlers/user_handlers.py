@@ -655,7 +655,8 @@ async def handle_prompt(
     status_message = "⏳ Принял. Отправляю запрос..."
     if image_urls:
         status_message = "⏳ Принял. Загрузил фото и отправляю на обработку..."
-    elif not cost or not await db.user.process_generation(user_id, cost):
+
+    if not await db.user.process_generation(user_id, cost):
         await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",
                              reply_markup=balance_choose_menu())
         return
