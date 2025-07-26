@@ -96,8 +96,8 @@ async def prompt_menu(user_id, selected_model, db: Database):
     if selected_model == 'Sora - Генерация изображений':
         user = await db.user.get_user(user_id)
         free = False
-        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-            free = True
+        #if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            #free = True
         prompt_lines = [
             "💬 Напиши промпт для генерации изображения.",
             "Вы также можете прикрепить фото для референса (необязательно).",
@@ -612,11 +612,13 @@ async def handle_prompt(
 
     # Загружаем изображения один раз, если они есть
     if any(msg.photo for msg in album):
+        print('pass photo')
         image_urls = await download_and_upload_images(bot, album)
     if model_key == 'Sora - Генерация изображений':
         if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-            await db.user.update_user(user_id, last_generation=datetime.datetime.now())
-            cost = 0
+            cost = IMAGE_GPT_COST
+            #await db.user.update_user(user_id, last_generation=datetime.datetime.now())
+            #cost = 0
         else:
             cost = IMAGE_GPT_COST
         params["model_name"] = MODELS[model_key]
@@ -664,6 +666,7 @@ async def handle_prompt(
     try:
         # 4. Отправляем запрос в API
         if model_key == 'Sora - Генерация изображений':
+            print('sora generate')
             result_urls = await generate_image(image_urls, prompt)
         else:
             result_urls = await generate_on_nexus(params)

@@ -85,7 +85,7 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
             }
         )
     try:
-
+        print('point 1')
         response = await client.responses.create(
             model="gpt-4o-mini",
             input=[
@@ -99,6 +99,8 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
             ],
             tools=[{"type": "image_generation", "input_fidelity": "low"}],
         )
+        print(response.output_text)
+        print('point 2')
         info = f'Общая стоимость: {response.usage.total_tokens}'
         with open('upload.txt', 'a', encoding='utf-8') as file:
             file.write('Запрос на генерацию: ' + info + '\n\n')
@@ -115,7 +117,8 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
                 f.write(base64.b64decode(image_base64))
             try:
                 photo_url = await upload_image_to_imgbb(file_path)
-            except Exception:
+            except Exception as error:
+                print('file to url: ', error)
                 continue
             if photo_url:
                 photos.append(photo_url)
