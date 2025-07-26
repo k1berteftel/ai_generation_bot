@@ -87,7 +87,7 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
     try:
 
         response = await client.responses.create(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             input=[
                     {
                     "role": "user",
