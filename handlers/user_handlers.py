@@ -396,7 +396,7 @@ async def open_photo_menu(callback: types.CallbackQuery):
     keyboard = get_photo_menu()
     await callback.message.delete()
     await callback.message.answer_photo(
-        photo=FSInputFile(path='medias/photo_menu.jpg'), text=text,
+        photo=FSInputFile(path='medias/photo_menu.jpg'), caption=text,
         reply_markup=keyboard, parse_mode='HTML'
     )
 
