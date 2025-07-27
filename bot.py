@@ -49,8 +49,8 @@ async def main():
     # Внедрение зависимостей (dependency injection) в хендлеры
     # Теперь db, key_manager и bot будут доступны в каждом хендлере
     db_instance = Database(async_session_factory)
-    for user in await db_instance.user.get_users():
-        await db_instance.user.update_user(user.id, generations=0)
+    #for user in await db_instance.user.get_users():
+        #await db_instance.user.update_user(user.id, generations=0)
     dp['db'] = db_instance
     dp['key_manager'] = key_manager
     dp['bot'] = bot
