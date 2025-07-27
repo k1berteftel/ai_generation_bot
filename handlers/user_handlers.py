@@ -116,7 +116,7 @@ async def prompt_menu(user_id, selected_model, db: Database):
             f"Стоимость: <b>{get_crystal_price_str(TEXT_GPT_COST if not free else 0)}</b>"
         ]
         text = "\n".join(prompt_lines)
-        keyboard = get_prompt_keyboard(user_id, selected_model)
+        keyboard = get_prompt_keyboard(user_id, selected_model.replace('|text', ''))
         return text, keyboard
 
     prompt_lines = [
