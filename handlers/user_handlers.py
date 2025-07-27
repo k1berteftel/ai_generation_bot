@@ -24,6 +24,7 @@ from keyboards.inline import (
     balance_stars_menu,
     url_button, json_to_keyboard, model_menu, get_prompt_keyboard, duration_menu,
     subscribe_button_keyboard, get_exemple_keyboard, get_student_menu,
+    get_photo_menu,
     USER_MODELS, USER_DURATIONS, USER_PIXVERSE_MODE, USER_ASPECT_RATIO
 )
 from services.nexus_api import generate_on_nexus
@@ -95,14 +96,24 @@ async def prompt_menu(user_id, selected_model, db: Database):
 
     if selected_model == 'Sora - Генерация изображений':
         user = await db.user.get_user(user_id)
-        free = False
-        #if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-            #free = True
         prompt_lines = [
             "💬 Напиши промпт для генерации изображения.",
             "Вы также можете прикрепить фото для референса (необязательно).",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(IMAGE_GPT_COST if not free else 0)}</b>"
+            f"Стоимость: <b>{get_crystal_price_str(IMAGE_GPT_COST)}</b>"
+        ]
+        text = "\n".join(prompt_lines)
+        keyboard = get_prompt_keyboard(user_id, selected_model)
+        return text, keyboard
+
+    if selected_model == 'Sora - Генерация изображений|text':
+        user = await db.user.get_user(user_id)
+        free = False
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            free = True
+        prompt_lines = [
+            "💬 Напиши промпт для генерации изображения.",
+            f"Стоимость: <b>{get_crystal_price_str(TEXT_GPT_COST if not free else 0)}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -128,9 +139,9 @@ async def prompt_menu(user_id, selected_model, db: Database):
     return text, keyboard
 
 
-async def example_menu(selected_model: str) -> tuple:
+async def example_menu(selected_model: str, text: bool = False) -> tuple:
     """Формирование текста с примером, примера генерации и клавиатуры для меню выбранной модели"""
-    model = MODELS_EXAMPLE_OBJECT[selected_model]
+    model = MODELS_EXAMPLE_OBJECT[selected_model if not text else selected_model + '|text']
     url = model.get("manual")
     example = model.get("examples")[0]
     text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
@@ -210,7 +221,9 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
     op_answer = await check_user_op(db, bot, message.from_user.id)
     if op_answer is not None:
         await message.answer(
-            'Подпишитесь на каналы чтобы пользоваться ботом!',
+            '📢 Чтобы продолжить пользоваться ботом, подпишитесь на наши каналы!\n\n'
+            'Это обязательное условие — подписка помогает нам оставлять генерации бесплатными. \n\n'
+            '👇 После подписки нажмите «Подписался»',
             reply_markup=subscribe_button_keyboard(op_answer)
         )
         await state.update_data(not_passed=[channel[0] for channel in op_answer])
@@ -370,12 +383,57 @@ async def open_students_menu(callback: types.CallbackQuery):
     await callback.message.answer(text=text, reply_markup=keyboard, parse_mode='HTML')
 
 
+@user_router.callback_query(F.data == 'photo_menu')
+async def open_photo_menu(callback: types.CallbackQuery):
+    text = ('✅ У вас есть 1 бесплатная попытка в сутки на генерацию с текстом. \n\n▶️ Генерация фото по тексту – '
+            'это когда ты пишешь, что хочешь увидеть (например, "кот в очках на пляже"), а компьютер с помощью '
+            'искусственного интеллекта сам «придумывает» и рисует такую картинку. Он не берёт фото из интернета, '
+            'а создаёт новое изображение, опираясь на то, что знает о котах, очках и пляже.  (1 бесплатно)\n\n'
+            '📸Генерация фото по тексту и фото (с референсом) – это когда ты не только пишешь, что хочешь (например, '
+            '"сделай в этом же стиле собаку в очках"), но ещё и показываешь пример (например, картинку кота в очках). '
+            'Тогда ИИ использует твою фотографию как образец — он сохраняет стиль, позу, цвета и рисует что-то '
+            'похожее, но уже с новым содержанием по твоему описанию. <b>(Только платные)</b>')
+    keyboard = get_photo_menu()
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=FSInputFile(path='medias/photo_menu.jpg'), text=text,
+        reply_markup=keyboard, parse_mode='HTML'
+    )
+
+
+@user_router.callback_query(F.data.startswith("choose_photo"))
+async def open_sora_menu(callback: types.CallbackQuery, state: FSMContext):
+    mode = callback.data.split('|')[1]
+    user_id = callback.from_user.id
+    await callback.message.delete()
+    await state.clear()
+    USER_MODELS[callback.from_user.id] = 'Sora - Генерация изображений'
+    model = USER_MODELS.get(callback.from_user.id)
+    if mode == 'photo':
+        text, media_data, keyboard = await example_menu(model)
+        await callback.message.answer_photo(
+            photo=media_data[0],
+            caption=text,
+            reply_markup=keyboard
+        )
+    else:
+        await state.update_data(mode='text')
+        text, media_data, keyboard = await example_menu(model, True)
+        await callback.message.answer_photo(
+            photo=media_data[0],
+            caption=text,
+            reply_markup=keyboard
+        )
+
+
 @user_router.callback_query(F.data == "start_gen")  # функция начала генерации
 async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     model = USER_MODELS.get(user_id)
-
+    data = await state.get_data()
     USER_MODELS[callback.from_user.id] = model
+    if data.get('mode'):
+        model += '|text'
     text, keyboard = await prompt_menu(callback.from_user.id, model, db)
     await state.set_state(GenStates.waiting_for_prompt)
     await callback.message.delete()
@@ -537,7 +595,7 @@ async def buy_generations_stars_menu(call: types.CallbackQuery):
     )
 
 
-async def process_successful_payment(payment_id, callback, db, amount, price):
+async def process_successful_payment(payment_id, callback, db: Database, amount, price):
     """Обрабатывает успешный платеж после проверки."""
     is_paid, _ = await check_payment(payment_id)
     if is_paid:
@@ -550,6 +608,7 @@ async def process_successful_payment(payment_id, callback, db, amount, price):
             if user.ref_id:
                 await db.user.increase_value(user.ref_id, 'generations', round(amount * 0.1))
             await db.user.increase_value(user_id, 'generations', amount)
+            await db.payments.create_payment(user_id, callback.from_user.username, price, 'card')
 
         await db.statistic.increment_counters('income', all_time=price, now_month=price)
         ad_url = await db.user.get_user_value(user_id, 'ad_url')
@@ -575,7 +634,7 @@ async def cb_account(callback: types.CallbackQuery, db: Database):
         f"⚡️ Получайте 10 💎 за каждого приглашённого пользователя\n⚡️ Зарабатывайте 10% от всех его пополнений\n"
         f"Используйте реферальную систему и получайте вознаграждение за активность!🔥\n\n<b>• Приглашённых:</b> {user.ref_count}\n"
         f"• Ссылка: `<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>`\n\n"
-        "<b>Поддержка:</b> @ygihhb"
+        "<b>Поддержка:</b> @supergptsupportbot"
     )
     await callback.message.delete()
     await callback.message.answer(text, reply_markup=get_account_keyboard(user_id), parse_mode="HTML")
@@ -592,9 +651,15 @@ async def handle_prompt(
     user_id = message.from_user.id
     user = await db.user.get_user(user_id)
     model_key = USER_MODELS.get(user_id)
+    data = await state.get_data()
+    mode = data.get('mode')
     if not model_key:
         await message.answer("Сначала выбери модель через главное меню.")
         await state.clear()
+        return
+
+    if mode and message.photo:
+        await message.answer('Промпт должен быть быть только текстовым, пожалуйста попробуйте снова')
         return
 
     # 1. Находим сообщение с текстом (промптом)
@@ -614,16 +679,18 @@ async def handle_prompt(
     if any(msg.photo for msg in album):
         print('pass photo')
         image_urls = await download_and_upload_images(bot, album)
-    if model_key == 'Sora - Генерация изображений':
-        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
-            cost = IMAGE_GPT_COST
-            #await db.user.update_user(user_id, last_generation=datetime.datetime.now())
-            #cost = 0
-        else:
-            cost = IMAGE_GPT_COST
+    if model_key == 'Sora - Генерация изображений' and mode is None:
+        cost = IMAGE_GPT_COST
         params["model_name"] = MODELS[model_key]
         if image_urls:
             params["image_urls"] = image_urls
+
+    elif model_key == 'Sora - Генерация изображений':
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            await db.user.update_user(user_id, last_generation=datetime.datetime.now())
+            cost = 0
+        else:
+            cost = TEXT_GPT_COST
 
     elif model_key == 'Veo3 - видео сценарию':
         cost = VEO_COST
@@ -731,6 +798,7 @@ async def successful_payment_handler(message: Message, db: Database):
         if user.ref_id:
             await db.user.increase_value(user.ref_id, 'generations', round(int(amount) * 0.1))
         await db.user.increase_value(user_id, 'generations', int(amount))
+        await db.payments.create_payment(user_id, message.from_user.username, amount, 'stars')
 
     await message.answer('✅ Оплата прошла успешно. Ваш баланс пополнен!')
 

@@ -22,6 +22,7 @@ def admin_panel_menu():
             KeyboardButton(text='Юзеры Бд')
         ],
         [
+            KeyboardButton(text='Покупки'),
             KeyboardButton(text='Логи')
         ],
         [

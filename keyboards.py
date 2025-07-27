@@ -5,7 +5,8 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="😀 Начать диалог", callback_data="start_chat")],
-            [InlineKeyboardButton(text="🧠 Выбрать модель", callback_data="choose_model")],
+            [InlineKeyboardButton(text="🎞 Создать видео", callback_data="choose_model")],
+            [InlineKeyboardButton(text="🖼Генерация фото как в Тик-ток", callback_data="photo_menu")],
             [InlineKeyboardButton(text="🎁Студентам и школьникам", callback_data="for_students")],
             [
                 InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="account"),

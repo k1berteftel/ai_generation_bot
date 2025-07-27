@@ -19,6 +19,7 @@ from admin.admin_states import OpState, NameUrl, StartMessage, \
     UpdateLinkOp, ApiKeyStates, SetStartMessageDelay, Malling
 from admin.services import format_statistics_report
 
+from utils.tables import get_table
 from config import list_admins
 from database.database import Database
 
@@ -41,12 +42,40 @@ async def get_mail(message: types.Message, state: FSMContext):
     await message.answer('Пришлите сообщение которое вы хотели бы разослать')
 
 
-@admin_router.message(F.text, Malling.waiting_for_message)
+@admin_router.message(Malling.waiting_for_message)
 async def show_confirm_malling(message: types.Message, state: FSMContext):
     await state.clear()
     await state.update_data(msg_id=message.message_id, chat_id=message.chat.id)
     await message.answer('Данное сообщение будет разослано всем пользователям бота, вы подтверждаете рассылку?',
                          reply_markup=confirm_malling_keyboard())
+
+
+@admin_router.message(F.text == 'Покупки')
+async def send_transactions(message: types.Message, db: Database):
+    payments = list(await db.payments.get_payments())
+    payments.reverse()
+    columns = []
+    for payment in payments:
+        columns.append(
+            [
+                payment.user_id,
+                payment.username,
+                payment.sum,
+                '💳Карта' if  payment.payment_type == 'card' else '⭐️Звезды',
+                payment.paid.strftime("%Y-%m-%d | %H:%M")
+            ]
+        )
+
+    columns.insert(0, ['User ID', 'Юзернейм', 'Сумма ₽', 'Способ оплаты', 'Дата оплаты'])
+    table = get_table(columns, 'Транзакции')
+    await message.answer_document(
+        document=FSInputFile(table)
+    )
+    try:
+        os.remove(table)
+    except Exception:
+        ...
+    await message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
 
 
 @admin_router.callback_query(F.data == 'confirm_malling')

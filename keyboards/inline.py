@@ -13,7 +13,8 @@ USER_ASPECT_RATIO = {}
 def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="😀 Начать диалог", callback_data="start_chat")],
-        [InlineKeyboardButton(text="🧠 Выбрать модель", callback_data="choose_model")],
+        [InlineKeyboardButton(text="🎞 Создать видео", callback_data="choose_model")],
+        [InlineKeyboardButton(text="🖼Генерация фото как в Тик-ток", callback_data="photo_menu")],
         [InlineKeyboardButton(text="🎁Студентам и школьникам", callback_data="for_students")],
         [
             InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="account"),
@@ -46,8 +47,19 @@ def get_student_menu() -> InlineKeyboardMarkup:
     )
 
 
+def get_photo_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='📝Только текст', callback_data='choose_photo|text')],
+            [InlineKeyboardButton(text='🖼Текст и фото', callback_data='choose_photo|photo')],
+            [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_main")]
+        ]
+    )
+
+
 def balance_rubles_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💎 99 кристалов — 99₽", callback_data="buy_rub_99")],
         [InlineKeyboardButton(text="💎 250 кристалов — 250₽", callback_data="buy_rub_250")],
         [InlineKeyboardButton(text="💎 400 кристалов — 400₽", callback_data="buy_rub_400")],
         [InlineKeyboardButton(text="💎 700 кристалов — 700₽", callback_data="buy_rub_700")],
@@ -58,6 +70,7 @@ def balance_rubles_menu() -> InlineKeyboardMarkup:
 
 def balance_stars_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💎 99 кристалов — 76 ⭐️", callback_data="buy_stars_99")],
         [InlineKeyboardButton(text="💎 250 кристалов — 189 ⭐️", callback_data="buy_stars_250")],
         [InlineKeyboardButton(text="💎 400 кристалов — 299 ⭐️", callback_data="buy_stars_400")],
         [InlineKeyboardButton(text="💎 700 кристалов — 539 ⭐️", callback_data="buy_stars_700")],
@@ -197,5 +210,5 @@ def subscribe_button_keyboard(channels: list[list]) -> InlineKeyboardMarkup:
         )
     return InlineKeyboardMarkup(inline_keyboard=[
         *buttons,
-        [InlineKeyboardButton(text='Подписался ✔️', callback_data=f'check_op')]
+        [InlineKeyboardButton(text='✅Подписался️', callback_data=f'check_op')]
     ])

@@ -1,7 +1,7 @@
 # data/constants.py
 
 MODELS = {
-    'Sora - Генерация изображений': 'gpt-4o-image',
+    #'Sora - Генерация изображений': 'gpt-4o-image',
     "Veo3 - видео сценарию": "veo-3-quality",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
@@ -89,8 +89,23 @@ MODELS_EXAMPLE_OBJECT = {
             },
         ],
         'manual': 'https://t.me/sora_2026'
+    },
+    'Sora - Генерация изображений|text': {
+        'name': '<b>gpt-4o-image</b>',
+        'description': 'Генерация изображений',
+        'examples': [
+            {
+                'name': '',
+                'media': 'medias/sora/sora_text.jpg',
+                'content_type': 'photo',
+                'prompt': '<blockquote expandable><b>Город на Луне, где дома построены из прозрачного стекла и '
+                          'управляются мыслями</b></blockquote>'
+            },
+        ],
+        'manual': 'https://t.me/sora_2026'
     }
 }
+
 
 MODEL_DESCRIPTIONS = {
     "Veo3 - видео сценарию": "Инструкция:  https://t.me/veo3_2025         \nДелает видео и звук по тексту. Может работать с фото.",
@@ -134,6 +149,7 @@ DURATION_PRICES = {
 }
 
 RUB_PRICES = {
+    99: 99,
     250: 250,
     400: 400,
     700: 700,
@@ -141,6 +157,7 @@ RUB_PRICES = {
 }
 
 STARS_PRICES = {
+    99: 76,
     250: 189,
     400: 299,
     700: 539,
@@ -151,5 +168,6 @@ ASPECT_INPUTS = {"16:9": "16:9", "9:16": "9:16", "1:1": "1:1"}
 DEFAULT_GENERATIONS = 0
 
 IMAGE_GPT_COST = 40
+TEXT_GPT_COST = 5
 
 VEO_COST = 200

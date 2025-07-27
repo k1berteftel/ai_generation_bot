@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from .repository import UserRepository,AdUrlRepository, SubscriptionRepository, StatisticsRepository, StartMessageRepository
+from .repository import (UserRepository,AdUrlRepository, SubscriptionRepository, StatisticsRepository,
+                         StartMessageRepository, PaymentsRepository)
 
 class Database:
     """
@@ -14,3 +15,4 @@ class Database:
         self.subscription = SubscriptionRepository(session_factory)
         self.statistic = StatisticsRepository(session_factory)
         self.start_message = StartMessageRepository(session_factory)
+        self.payments = PaymentsRepository(session_factory)

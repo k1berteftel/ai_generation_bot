@@ -1,13 +1,13 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Any, List, Sequence, Type, Dict
+from typing import Optional, Any, List, Sequence, Type, Dict, Literal
 
 from sqlalchemy import select, update, delete, func, and_, text
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .models import User, StartMessage, AdUrl, SubscriptionCheck, Statistic
+from .models import User, StartMessage, AdUrl, SubscriptionCheck, Statistic, Transactions
 
 
 class UserRepository:
@@ -389,3 +389,26 @@ class StartMessageRepository:
             await session.execute(stmt)
             await session.commit()
             logging.info(f"Start message delay updated to {new_delay} seconds.")
+
+
+class PaymentsRepository:
+    def __init__(self, session_factory: async_sessionmaker):
+        self.session_factory = session_factory
+
+    async def create_payment(self, user_id: int, username: str | None, sum: int,
+                             payment_type: Literal['card', 'stars']):
+        async with self.session_factory() as session:
+            await session.execute(insert(Transactions).values(
+                user_id=user_id,
+                username=username,
+                sum=sum,
+                payment_type=payment_type,
+                paid=datetime.now()
+            ))
+            await session.commit()
+
+    async def get_payments(self):
+        async with self.session_factory() as session:
+            result = await session.scalars(select(Transactions))
+        return result.fetchall()
+

@@ -90,3 +90,15 @@ class StartMessage(Base):
     def __repr__(self):
         return f"<StartMessage(id={self.id}, chat_id={self.chat_id}, message_id={self.message_id})>"
 
+
+class Transactions(Base):
+    __tablename__ = 'transactions'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    username: Mapped[str] = mapped_column(String(255), nullable=True)
+    sum: Mapped[int] = mapped_column(Integer)
+    payment_type: Mapped[str] = mapped_column(String(255))
+    paid: Mapped[datetime] = mapped_column(DateTime)
+
