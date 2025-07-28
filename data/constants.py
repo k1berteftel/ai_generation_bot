@@ -102,7 +102,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'управляются мыслями</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/sora_2026'
+        'manual': 'https://t.me/generation_text'
     }
 }
 

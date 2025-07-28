@@ -14,7 +14,7 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="😀 Начать диалог", callback_data="start_chat")],
         [InlineKeyboardButton(text="🎞 Создать видео", callback_data="choose_model")],
-        [InlineKeyboardButton(text="🖼Генерация фото как в Тик-ток", callback_data="photo_menu")],
+        [InlineKeyboardButton(text="🖼Создать фото", callback_data="photo_menu")],
         [InlineKeyboardButton(text="🎁Студентам и школьникам", callback_data="for_students")],
         [
             InlineKeyboardButton(text="👤 Мой аккаунт", callback_data="account"),
@@ -192,12 +192,12 @@ def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMark
     )
 
 
-def get_exemple_keyboard(url: str):
+def get_exemple_keyboard(url: str, photo_menu: bool = False):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='😀 Начать генерацию', callback_data='start_gen')],
             [InlineKeyboardButton(text='ℹ️ Инструкция', url=url)],
-            [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model')]
+            [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model' if not photo_menu else 'photo_menu')]
         ]
     )
     return keyboard

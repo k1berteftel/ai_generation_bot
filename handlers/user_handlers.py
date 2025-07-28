@@ -139,17 +139,36 @@ async def prompt_menu(user_id, selected_model, db: Database):
     return text, keyboard
 
 
-async def example_menu(selected_model: str, text: bool = False) -> tuple:
+async def example_menu(selected_model: str, user_id: int, db: Database, mode: str | None = None) -> tuple:
     """Формирование текста с примером, примера генерации и клавиатуры для меню выбранной модели"""
-    model = MODELS_EXAMPLE_OBJECT[selected_model if not text else selected_model + '|text']
-    url = model.get("manual")
-    example = model.get("examples")[0]
-    text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
-            f'<u>{example.get("name") if example.get("name") else ""}</u>'
-            f'{example.get("prompt")}\n\n🔗Инструкция: {url}')
-    media = FSInputFile(path=example.get('media'))
-    keyboard = get_exemple_keyboard(url)
-    return text, [media, example.get("content_type")], keyboard
+    user = await db.user.get_user(user_id)
+    balance = None
+    if mode:
+        balance = user.generations
+        model = MODELS_EXAMPLE_OBJECT[selected_model if mode == 'photo' else selected_model + '|text']
+    else:
+        model = MODELS_EXAMPLE_OBJECT[selected_model]
+
+    if (mode is None or mode != 'text') and (balance is None or balance >= 40):
+        url = model.get("manual")
+        example = model.get("examples")[0]
+        text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
+                f'<u>{example.get("name") if example.get("name") else ""}</u>'
+                f'{example.get("prompt")}\n\n🔗Инструкция: {url}')
+        media = FSInputFile(path=example.get('media'))
+        if selected_model.startswith('Sora - Генерация изображений'):
+            keyboard = get_exemple_keyboard(url, True)
+        else:
+            keyboard = get_exemple_keyboard(url)
+        return text, [media, example.get("content_type")], keyboard
+    else:
+        text = (f'⚡️Цена генерации 40💎\n\t\t\tТвой баланс составляет {balance} 💎\n\t\t\t'
+                f'Приглашайте друзей и зарабатывайте бонусы!\n\n'
+                f'⚡️Получайте 10 💎 за каждого приглашённого пользователя\n⚡️Зарабатывайте 10% от всех его пополнений'
+                f'\n\n<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>\nИспользуйте реферальную систему '
+                f'и получайте вознаграждение за активность!🔥\n\n👇Или пополняй баланс по кнопке ниже 👇')
+        keyboard = balance_choose_menu()
+        return text, [], keyboard
 
 
 async def message_start(message: types.Message, db: Database, bot: Bot):
@@ -311,11 +330,11 @@ async def cb_choose_model(callback: types.CallbackQuery):
 
 
 @user_router.callback_query(F.data.startswith("model_"))
-async def cb_model_selected(callback: types.CallbackQuery, state: FSMContext):
+async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: FSMContext):
     model = callback.data.replace("model_", "")
     USER_MODELS[callback.from_user.id] = model
     await callback.message.delete()
-    text, media_data, keyboard = await example_menu(model)
+    text, media_data, keyboard = await example_menu(model, callback.from_user.id, db)
     if media_data[1] == 'photo':
         await callback.message.answer_photo(
             photo=media_data[0],
@@ -402,7 +421,7 @@ async def open_photo_menu(callback: types.CallbackQuery):
 
 
 @user_router.callback_query(F.data.startswith("choose_photo"))
-async def open_sora_menu(callback: types.CallbackQuery, state: FSMContext):
+async def open_sora_menu(callback: types.CallbackQuery, db: Database, state: FSMContext):
     mode = callback.data.split('|')[1]
     user_id = callback.from_user.id
     await callback.message.delete()
@@ -410,15 +429,20 @@ async def open_sora_menu(callback: types.CallbackQuery, state: FSMContext):
     USER_MODELS[callback.from_user.id] = 'Sora - Генерация изображений'
     model = USER_MODELS.get(callback.from_user.id)
     if mode == 'photo':
-        text, media_data, keyboard = await example_menu(model)
-        await callback.message.answer_photo(
-            photo=media_data[0],
-            caption=text,
-            reply_markup=keyboard
-        )
+        text, media_data, keyboard = await example_menu(model, user_id, db, 'photo')
+        if media_data:
+            await callback.message.answer_photo(
+                photo=media_data[0],
+                caption=text,
+                reply_markup=keyboard
+            )
+        else:
+            await callback.message.answer(
+                text=text, reply_markup=keyboard
+            )
     else:
         await state.update_data(mode='text')
-        text, media_data, keyboard = await example_menu(model, True)
+        text, media_data, keyboard = await example_menu(model, user_id, db, 'text')
         await callback.message.answer_photo(
             photo=media_data[0],
             caption=text,
@@ -805,7 +829,6 @@ async def successful_payment_handler(message: Message, db: Database):
 
 @user_router.callback_query(F.data == 'check_op')
 async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSMContext, bot: Bot):
-    channels = await db.subscription.get_all_channels()
     answer = await check_user_op(db, bot, call.from_user.id)
     if answer is None:
         data = await state.get_data()
