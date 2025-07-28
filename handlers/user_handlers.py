@@ -144,12 +144,13 @@ async def example_menu(selected_model: str, user_id: int, db: Database, mode: st
     user = await db.user.get_user(user_id)
     balance = None
     if mode:
-        balance = user.generations
+        if mode == 'photo':
+            balance = user.generations
         model = MODELS_EXAMPLE_OBJECT[selected_model if mode == 'photo' else selected_model + '|text']
     else:
         model = MODELS_EXAMPLE_OBJECT[selected_model]
 
-    if (mode is None or mode != 'text') and (balance is None or balance >= 40):
+    if (mode is None or mode == 'text') and (balance is None or balance >= 40):
         url = model.get("manual")
         example = model.get("examples")[0]
         text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
