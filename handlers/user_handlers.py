@@ -701,7 +701,6 @@ async def handle_prompt(
         image_urls = await download_and_upload_images(bot, album)
     if model_key == 'Sora - Генерация изображений' and mode is None:
         cost = IMAGE_GPT_COST
-        params["model_name"] = MODELS[model_key]
         if image_urls:
             params["image_urls"] = image_urls
 
