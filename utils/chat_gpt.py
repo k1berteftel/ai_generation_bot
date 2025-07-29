@@ -102,6 +102,7 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
         print(response.output_text)
         print('point 2')
         info = f'Общая стоимость: {response.usage.total_tokens}'
+        print(info)
         with open('upload.txt', 'a', encoding='utf-8') as file:
             file.write('Запрос на генерацию: ' + info + '\n\n')
         image_data = [
@@ -115,6 +116,7 @@ async def generate_image(photos: list[str], prompt: str) -> list[str]:
             file_path = f"{get_random_id()}.png"
             with open(file_path, "wb") as f:
                 f.write(base64.b64decode(image_base64))
+            print('file path: ', file_path)
             try:
                 photo_url = await upload_image_to_imgbb(file_path)
             except Exception as error:
