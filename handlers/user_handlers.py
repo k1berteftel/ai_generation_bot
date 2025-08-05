@@ -27,7 +27,7 @@ from keyboards.inline import (
     get_photo_menu,
     USER_MODELS, USER_DURATIONS, USER_PIXVERSE_MODE, USER_ASPECT_RATIO
 )
-from services.nexus_api import generate_on_nexus
+from services.nexus_api import generate_on_nexus, generate_on_api
 from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
@@ -83,7 +83,7 @@ async def prompt_menu(user_id, selected_model, db: Database):
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
 
-    if selected_model == 'Veo3 - видео сценарию':
+    if selected_model in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
             "Вы можете прикрепить фото для референса.",
@@ -707,10 +707,9 @@ async def handle_prompt(
         else:
             cost = TEXT_GPT_COST
 
-    elif model_key == 'Veo3 - видео сценарию':
+    elif model_key in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
         cost = VEO_COST
         params["model_name"] = MODELS[model_key]
-        params["translate"] = True
         if image_urls:
             params["image_url"] = image_urls[0]
 
@@ -720,15 +719,9 @@ async def handle_prompt(
             duration_str = USER_DURATIONS.get(user_id, MODEL_DURATIONS[model_key][0])
             cost = calculate_generation_cost(model_key, duration_str)
             params["duration"] = int(duration_str.replace(" сек", ""))
-        else:  # Если у модели нет выбора длительности (как у Minimax)
-            cost = 999
-
-        params["model_name"] = MODELS[model_key]
-        if model_key != 'Minimax - Видео по фото':
             params["aspect_ratio"] = aspect_ratio
 
         if image_urls:
-
             image_field = MODEL_IMAGE_FIELD.get(model_key)
             if image_field:
                 params[image_field] = image_urls[0]
@@ -751,7 +744,8 @@ async def handle_prompt(
             print('sora generate')
             result_urls = await generate_image(image_urls, prompt)
         else:
-            result_urls = await generate_on_nexus(params)
+            #result_urls = await generate_on_nexus(params)
+            result_urls = await generate_on_api(params)
 
         if not result_urls:
             raise RuntimeError("API не вернул результат.")
@@ -773,9 +767,14 @@ async def handle_prompt(
                     message_ids=[msg.message_id for msg in message_to_copy]
                 )
         else:  # Для всех видеомоделей, включая Veo
-            video_url = result_urls[0]
+            video = result_urls
             caption = f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n<b>Модель:</b> {model_key}"
-            await message.answer_video(video_url, caption=caption, parse_mode='HTML')
+            msg = await message.answer_video(video, caption=caption, parse_mode='HTML')
+            await bot.copy_message(
+                chat_id=-1002744087198,
+                from_chat_id=msg.chat.id,
+                message_id=msg.message_id
+            )
 
         await message.answer('Вы можете вернуться на главное меню', reply_markup=keyboard)
         await db.statistic.increment_counters(model_key, all_time=1, now_month=1)

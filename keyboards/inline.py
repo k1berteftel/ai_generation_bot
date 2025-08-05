@@ -157,7 +157,7 @@ def duration_menu(selected_model: str, user_id: int) -> InlineKeyboardMarkup:
 
 def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMarkup:
     back = f'model_{selected_model}'
-    if selected_model == 'Veo3 - видео сценарию':
+    if selected_model in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],

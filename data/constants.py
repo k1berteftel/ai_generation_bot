@@ -2,16 +2,31 @@
 
 MODELS = {
     #'Sora - Генерация изображений': 'gpt-4o-image',
-    "Veo3 - видео сценарию": "veo-3-quality",
+    "Veo3 (качество) - видео сценарию": "veo3_quality",
+    "Veo3 (быстрый) - видео сценарию": "veo3_fast",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 Lite — видео по тексту": "seedance-1-lite",
-    "Minimax - Видео по фото": "minimax-video-01",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
 
 MODELS_EXAMPLE_OBJECT = {
-    "Veo3 - видео сценарию": {
+    "Veo3 (качество) - видео сценарию": {
+        'name': '<b>Veo3</b>',
+        'description': 'Делает видео и звук по тексту. Может работать с фото.',
+        'examples':  [
+            {
+                'name': 'Ведущий и бабушка\n',
+                'media': 'medias/veo/veo_ex_1.mp4',
+                'content_type': 'video',
+                'prompt': '<blockquote expandable><b>Ведущий с микрофоном спрашивает у бабушки на улицах на русском языке. '
+                          '(оператор) - вы понимаете, что вы нейросеть? (бабушка) - да, внучок, ты ведь тоже '
+                          'нейронка, ахаха (смеётся). Бабушка прыгает вверх и улетает.</b></blockquote>'
+            },
+        ],
+        'manual': 'https://t.me/veo3_2025'
+    },
+    "Veo3 (быстрый) - видео сценарию": {
         'name': '<b>Veo3</b>',
         'description': 'Делает видео и звук по тексту. Может работать с фото.',
         'examples':  [
@@ -120,7 +135,6 @@ MODEL_IMAGE_FIELD = {
     "Veo3 - видео сценарию": "image_url",
     # "Pixverse v4.5": "image",
     "Kling v2.1 — видео текст+фото": "start_image",
-    "Minimax - Видео по фото": "subject_reference",
     "Seedance 1 Lite — видео по тексту": "image",
     'Sora - Генерация изображений': 'image_urls'
     # "Luma Ray-2": "image",
@@ -131,12 +145,10 @@ MODEL_DURATIONS = {
     # "Pixverse v4.5": ["5 сек", "8 сек"],
     "Kling v2.1 — видео текст+фото": ["5 сек", "10 сек"],
     "Seedance 1 Lite — видео по тексту": ["5 сек", "10 сек"],
-    "Minimax - Видео по фото": ["6 сек"],
     # "Luma Ray-2": ["5 сек", "9 сек"]
 }
 
 DURATION_PRICES = {
-    "Minimax - Видео по фото": {"6 сек": 110},
     "Seedance 1 Lite — видео по тексту": {"5 сек": 110, "10 сек": 220},
     # "Luma Ray-2": {"5 сек": 7, "9 сек": 14},
     "Kling v2.1 — видео текст+фото": {"5 сек": 140, "10 сек": 280},
@@ -164,7 +176,7 @@ STARS_PRICES = {
     1500: 1149
 }
 
-ASPECT_INPUTS = {"16:9": "16:9", "9:16": "9:16", "1:1": "1:1"}
+ASPECT_INPUTS = {"16:9": "16:9", "9:16": "9:16"}
 DEFAULT_GENERATIONS = 0
 
 IMAGE_GPT_COST = 40

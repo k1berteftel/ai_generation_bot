@@ -61,3 +61,24 @@ async def generate_on_nexus(params: dict[str, Any]) -> list[str]:
                 logging.error(f"Сетевая ошибка при проверке статуса задачи {task_id}: {e}")
 
         raise RuntimeError("Тайм-аут ожидания генерации.")
+
+
+async def generate_on_api(params: dict) -> str:
+    url = 'http://127.0.0.1:8000/'
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url + 'generate', json=params, ssl=False) as response:
+            if response.status != 200:
+                raise RuntimeError(f"Ошибка сети при обращении к API: ")
+            data = await response.json()
+            task_id = data['task_id']
+        url = f'http://127.0.0.1:8000/result/{task_id}'
+        while True:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    raise RuntimeError(f"Ошибка сети при обращении к API: {await response.content.read()}")
+                data = await response.json()
+                if data['status'] == 'failed':
+                    raise Exception(data['message'])
+                if data['status'] == 'completed':
+                    return data['result']
+            await asyncio.sleep(4)
