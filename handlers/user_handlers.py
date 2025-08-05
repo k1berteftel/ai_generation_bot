@@ -24,7 +24,7 @@ from keyboards.inline import (
     balance_stars_menu,
     url_button, json_to_keyboard, model_menu, get_prompt_keyboard, duration_menu,
     subscribe_button_keyboard, get_exemple_keyboard, get_student_menu,
-    get_photo_menu,
+    get_photo_menu, choose_veo_keyboard,
     USER_MODELS, USER_DURATIONS, USER_PIXVERSE_MODE, USER_ASPECT_RATIO
 )
 from services.nexus_api import generate_on_nexus, generate_on_api
@@ -83,12 +83,12 @@ async def prompt_menu(user_id, selected_model, db: Database):
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
 
-    if selected_model in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
+    if selected_model in VEO_MODELS.keys():
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
             "Вы можете прикрепить фото для референса.",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(VEO_COST)}</b>"
+            f"Стоимость: <b>{get_crystal_price_str(VEO_COST.get(selected_model))}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
@@ -329,6 +329,12 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
     model = callback.data.replace("model_", "")
     USER_MODELS[callback.from_user.id] = model
     await callback.message.delete()
+    if model == 'Veo3 - видео сценарию':
+        await callback.message.answer(
+            text='Выберите модель генерации',
+            reply_markup=choose_veo_keyboard()
+        )
+        return
     text, media_data, keyboard = await example_menu(model)
     if media_data[1] == 'photo':
         await callback.message.answer_photo(
@@ -442,14 +448,30 @@ async def open_sora_menu(callback: types.CallbackQuery, db: Database, state: FSM
         )
 
 
+@user_router.callback_query(F.data.startswith('veo_choose'))
+async def start_veo_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
+    veo_model = callback.data.split('|')[-1]
+    user_id = callback.from_user.id
+    model = USER_MODELS.get(user_id)
+    await state.update_data(veo_model=veo_model)
+    text, media_data, keyboard = await example_menu(model)
+    await callback.message.delete()
+    await callback.message.answer_video(
+        video=media_data[0],
+        caption=text,
+        reply_markup=keyboard
+    )
+
+
 @user_router.callback_query(F.data == "start_gen")  # функция начала генерации
 async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     model = USER_MODELS.get(user_id)
     data = await state.get_data()
-    USER_MODELS[callback.from_user.id] = model
     if data.get('mode'):
         model += '|text'
+    if model == 'Veo3 - видео сценарию':
+        model = data.get('veo_model')
     text, keyboard = await prompt_menu(callback.from_user.id, model, db)
     await state.set_state(GenStates.waiting_for_prompt)
     await callback.message.delete()
@@ -468,10 +490,13 @@ async def cb_choose_aspect(callback: types.CallbackQuery, state: FSMContext):
 
 @user_router.callback_query(F.data.startswith("aspect_"), GenStates.waiting_for_aspect)
 async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext, db: Database):
+    data = await state.get_data()
     aspect = callback.data.replace("aspect_", "")
     user_id = callback.from_user.id
     USER_ASPECT_RATIO[user_id] = aspect
     selected_model = USER_MODELS.get(user_id)
+    if selected_model == 'Veo3 - видео сценарию':
+        selected_model = data.get('veo_model')
     if not selected_model:
         await cb_back_main(callback, state)  # Возврат в главное меню, если модель не выбрана
         return
@@ -492,7 +517,10 @@ async def cb_choose_duration(callback: types.CallbackQuery):
 @user_router.callback_query(F.data.startswith("set_duration_"), GenStates.waiting_for_prompt)
 async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
+    data = await state.get_data()
     selected_model = USER_MODELS.get(user_id)
+    if selected_model == 'Veo3 - видео сценарию':
+        selected_model = data.get('veo_model')
     if not selected_model: return
 
     d = callback.data.replace("set_duration_", "")
@@ -505,7 +533,10 @@ async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: 
 @user_router.callback_query(F.data == "back_to_prompt")
 async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
+    data = await state.get_data()
     selected_model = USER_MODELS.get(user_id)
+    if selected_model == 'Veo3 - видео сценарию':
+        selected_model = data.get('veo_model')
     if not selected_model: return
 
     prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
@@ -516,8 +547,10 @@ async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db
 @user_router.callback_query(F.data == "toggle_pixverse_mode", GenStates.waiting_for_prompt)
 async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
+    data = await state.get_data()
     selected_model = USER_MODELS.get(user_id)
-    if not selected_model: return
+    if selected_model == 'Veo3 - видео сценарию':
+        selected_model = data.get('veo_model')
 
     current = USER_PIXVERSE_MODE.get(user_id, "smooth")
     USER_PIXVERSE_MODE[user_id] = "normal" if current == "smooth" else "smooth"
@@ -707,9 +740,11 @@ async def handle_prompt(
         else:
             cost = TEXT_GPT_COST
 
-    elif model_key in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
-        cost = VEO_COST
-        params["model_name"] = MODELS[model_key]
+    elif model_key == 'Veo3 - видео сценарию':
+        cost = VEO_COST.get(data.get('veo_model'))
+        veo_model = VEO_MODELS.get(data.get('veo_model'))
+
+        params["model_name"] = veo_model
         if image_urls:
             params["image_url"] = image_urls[0]
 

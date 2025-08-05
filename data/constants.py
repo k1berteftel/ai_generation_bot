@@ -2,31 +2,22 @@
 
 MODELS = {
     #'Sora - Генерация изображений': 'gpt-4o-image',
-    "Veo3 (качество) - видео сценарию": "veo3_quality",
-    "Veo3 (быстрый) - видео сценарию": "veo3_fast",
+    "Veo3 - видео сценарию": "veo3_quality",
+    #"Veo3 (Качественный)": "veo3_quality",
+    #"Veo3 (Бюджетный)": "veo3_fast",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 Lite — видео по тексту": "seedance-1-lite",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
 
+VEO_MODELS = {
+    "Veo3 (Качественный)": "veo3_quality",
+    "Veo3 (Бюджетный)": "veo3_fast",
+}
+
 MODELS_EXAMPLE_OBJECT = {
-    "Veo3 (качество) - видео сценарию": {
-        'name': '<b>Veo3</b>',
-        'description': 'Делает видео и звук по тексту. Может работать с фото.',
-        'examples':  [
-            {
-                'name': 'Ведущий и бабушка\n',
-                'media': 'medias/veo/veo_ex_1.mp4',
-                'content_type': 'video',
-                'prompt': '<blockquote expandable><b>Ведущий с микрофоном спрашивает у бабушки на улицах на русском языке. '
-                          '(оператор) - вы понимаете, что вы нейросеть? (бабушка) - да, внучок, ты ведь тоже '
-                          'нейронка, ахаха (смеётся). Бабушка прыгает вверх и улетает.</b></blockquote>'
-            },
-        ],
-        'manual': 'https://t.me/veo3_2025'
-    },
-    "Veo3 (быстрый) - видео сценарию": {
+    "Veo3 - видео сценарию": {
         'name': '<b>Veo3</b>',
         'description': 'Делает видео и звук по тексту. Может работать с фото.',
         'examples':  [
@@ -149,9 +140,9 @@ MODEL_DURATIONS = {
 }
 
 DURATION_PRICES = {
-    "Seedance 1 Lite — видео по тексту": {"5 сек": 110, "10 сек": 220},
+    "Seedance 1 Lite — видео по тексту": {"5 сек": 80, "10 сек": 160},
     # "Luma Ray-2": {"5 сек": 7, "9 сек": 14},
-    "Kling v2.1 — видео текст+фото": {"5 сек": 140, "10 сек": 280},
+    "Kling v2.1 — видео текст+фото": {"5 сек": 120, "10 сек": 240},
     # "Pixverse v4.5": {
     #     "720p_smooth_5 сек": 6,
     #     "720p_normal_5 сек": 3,
@@ -182,4 +173,7 @@ DEFAULT_GENERATIONS = 0
 IMAGE_GPT_COST = 40
 TEXT_GPT_COST = 5
 
-VEO_COST = 200
+VEO_COST = {
+    'Veo3 (Качественный)': 150,
+    'Veo3 (Бюджетный)': 90
+}

@@ -2,7 +2,7 @@
 import json
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from data.constants import MODELS, MODEL_DURATIONS, ASPECT_INPUTS
+from data.constants import MODELS, MODEL_DURATIONS, ASPECT_INPUTS, VEO_MODELS
 
 USER_MODELS = {}
 USER_DURATIONS = {}
@@ -157,7 +157,8 @@ def duration_menu(selected_model: str, user_id: int) -> InlineKeyboardMarkup:
 
 def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMarkup:
     back = f'model_{selected_model}'
-    if selected_model in ["Veo3 (качество) - видео сценарию", "Veo3 (быстрый) - видео сценарию"]:
+    if selected_model in VEO_MODELS.keys():
+        back = f'veo_choose|{selected_model}'
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],
@@ -201,6 +202,18 @@ def get_exemple_keyboard(url: str, photo_menu: bool = False):
         ]
     )
     return keyboard
+
+
+def choose_veo_keyboard():
+    keyboard = []
+    for model in VEO_MODELS.keys():
+        keyboard.append(
+            [InlineKeyboardButton(text=model, callback_data=f'veo_choose|{model}')]
+        )
+    keyboard.append(
+        [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model')]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def subscribe_button_keyboard(channels: list[list]) -> InlineKeyboardMarkup:
