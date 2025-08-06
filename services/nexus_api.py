@@ -68,7 +68,7 @@ async def generate_on_api(params: dict) -> str:
     async with aiohttp.ClientSession() as session:
         async with session.post(url + 'generate', json=params, ssl=False) as response:
             if response.status != 200:
-                raise RuntimeError(f"Ошибка сети при обращении к API: ")
+                raise RuntimeError(f"Ошибка сети при обращении к API: {await response.content.read()}")
             data = await response.json()
             task_id = data['task_id']
         url = f'http://127.0.0.1:8000/result/{task_id}'
