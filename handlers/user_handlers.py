@@ -750,6 +750,7 @@ async def handle_prompt(
 
     else:
         aspect_ratio = USER_ASPECT_RATIO.get(user_id, "16:9")
+        params["model_name"] = MODELS.get(model_key)
         if model_key in MODEL_DURATIONS:
             duration_str = USER_DURATIONS.get(user_id, MODEL_DURATIONS[model_key][0])
             cost = calculate_generation_cost(model_key, duration_str)
