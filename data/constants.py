@@ -57,11 +57,9 @@ MODELS_EXAMPLE_OBJECT = {
         'examples':  [
             {
                 'name': '',
-                'media': 'medias/seedance/seedance_1.mp4',
+                'media': 'medias/seedance/seedance_ex.mp4',
                 'content_type': 'gif',
-                'prompt': '<blockquote expandable><b>Утром подросток проезжает на велосипеде по старому европейскому '
-                          'району города. На кадрах видно, как колеса велосипеда проезжают по мощеным улицам, а затем '
-                          'он едет впереди и, наконец, крутит педали на залитой солнцем площади.</b></blockquote>'
+                'prompt': '<blockquote expandable><b>Оживи фотографию</b></blockquote>'
             },
         ],
         'manual': 'https://t.me/seedance25'
