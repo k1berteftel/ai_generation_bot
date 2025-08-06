@@ -746,9 +746,11 @@ async def handle_prompt(
 
         params["model_name"] = veo_model
         if image_urls:
-            params["image_url"] = image_urls[0]
+            params["image_url"] = image_urls
 
     else:
+        if image_urls:
+            params["image_url"] = image_urls
         aspect_ratio = USER_ASPECT_RATIO.get(user_id, "16:9")
         params["model_name"] = MODELS.get(model_key)
         if model_key in MODEL_DURATIONS:
@@ -757,10 +759,6 @@ async def handle_prompt(
             params["duration"] = int(duration_str.replace(" сек", ""))
             params["aspect_ratio"] = aspect_ratio
 
-        if image_urls:
-            image_field = MODEL_IMAGE_FIELD.get(model_key)
-            if image_field:
-                params[image_field] = image_urls[0]
     # 3. Списываем баланс
 
     await state.clear()
