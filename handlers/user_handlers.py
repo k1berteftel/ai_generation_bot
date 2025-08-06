@@ -726,7 +726,6 @@ async def handle_prompt(
 
     # Загружаем изображения один раз, если они есть
     if any(msg.photo for msg in album):
-        print('pass photo')
         image_urls = await download_and_upload_images(bot, album)
     if model_key == 'Sora - Генерация изображений' and mode is None:
         cost = IMAGE_GPT_COST
@@ -746,11 +745,11 @@ async def handle_prompt(
 
         params["model_name"] = veo_model
         if image_urls:
-            params["image_url"] = image_urls
+            params["image_urls"] = image_urls
 
     else:
         if image_urls:
-            params["image_url"] = image_urls
+            params["image_urls"] = image_urls
         aspect_ratio = USER_ASPECT_RATIO.get(user_id, "16:9")
         params["model_name"] = MODELS.get(model_key)
         if model_key in MODEL_DURATIONS:
