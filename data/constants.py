@@ -39,7 +39,7 @@ MODELS_EXAMPLE_OBJECT = {
             {
                 'name': '',
                 'media': 'medias/kling/kling_ex_2.MP4',
-                'content_type': 'gif',
+                'content_type': 'video',
                 'prompt': '<blockquote expandable><b>Create a realistic vertical video (9:16), as if recorded '
                           'with an iPhone at an outdoor seasons as summer. The setting has warm lighting from '
                           'streetlights or soft party lights. A little boy around 2 to 3 years old, with light '
