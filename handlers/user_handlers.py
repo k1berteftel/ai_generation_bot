@@ -845,7 +845,7 @@ async def successful_payment_handler(message: Message, db: Database):
         if user.ref_id:
             await db.user.increase_value(user.ref_id, 'generations', round(int(amount) * 0.1))
         await db.user.increase_value(user_id, 'generations', int(amount))
-        await db.payments.create_payment(user_id, message.from_user.username, amount, 'stars')
+        await db.payments.create_payment(user_id, message.from_user.username, int(amount), 'stars')
 
     await message.answer('✅ Оплата прошла успешно. Ваш баланс пополнен!')
 

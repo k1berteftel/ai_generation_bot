@@ -38,15 +38,20 @@ MODELS_EXAMPLE_OBJECT = {
         'examples': [
             {
                 'name': '',
-                'media': 'medias/kling/kling_2.mp4',
+                'media': 'medias/kling/kling_ex_2.MP4',
                 'content_type': 'gif',
-                'prompt': '<blockquote expandable><b>Невероятно красивая норвежка с голубыми глазами, длинными ресницами, '
-                          'накрашенными тушью, и чёрным контуром вокруг глаз, с веснушками. '
-                          'На ней доисторическая юбка, у неё очень здоровое тело. Она целует своего лучшего друга, '
-                          'чёрного дракона, который очень её любит, медленно забирается ему на шею, '
-                          'поворачивается лицом к камере, и он вытягивает переднюю лапу, чтобы ей было легче '
-                          'забраться, а затем они взлетают высоко в небо. Чистые детали, идеальное изображение. '
-                          'Съёмка всего тела, полный реализм, чистые детали, идеальное изображение.</b></blockquote>'
+                'prompt': '<blockquote expandable><b>Create a realistic vertical video (9:16), as if recorded '
+                          'with an iPhone at an outdoor seasons as summer. The setting has warm lighting from '
+                          'streetlights or soft party lights. A little boy around 2 to 3 years old, with light '
+                          'skin tone, broun hair, and big green expressive eyes, runs joyfully toward a young '
+                          'couple sitting close together. The couple must look exactly like the people in the '
+                          'attached photo — no changes to their facial features, skin tone, hairstyle, or clothing. '
+                          'They both have medium skin, man have dark hair, women have broun hair and are man '
+                          'wearing summer outfits. The child should clearly look like the boy, with features that '
+                          'naturally combine both parents. He hugs them lovingly, wrapping her arms around them, '
+                          'smiling and laughing. The couple smiles and embraces he warmly. The video should feel '
+                          'authentic, as if casually filmed by a friend or family member on a phone — slightly '
+                          'shaky, casually composed, and emotionally genuine</b></blockquote>'
             },
         ],
         'manual': 'https://t.me/kling_promt2025'
