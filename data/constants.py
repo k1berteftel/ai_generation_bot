@@ -40,8 +40,7 @@ MODELS_EXAMPLE_OBJECT = {
                 'name': '',
                 'media': 'medias/kling/kling_ex_2.MP4',
                 'content_type': 'video',
-                'prompt': '<blockquote expandable><b>Create a realistic vertical video (9:16), as if recorded '
-                          'with an iPhone at an outdoor seasons as summer. The setting has warm lighting from '
+                'prompt': '<blockquote expandable><b>The setting has warm lighting from ' #Create a realistic vertical video (9:16), as if recorded with an iPhone at an outdoor seasons as summer. 
                           'streetlights or soft party lights. A little boy around 2 to 3 years old, with light '
                           'skin tone, broun hair, and big green expressive eyes, runs joyfully toward a young '
                           'couple sitting close together. The couple must look exactly like the people in the '
