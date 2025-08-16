@@ -807,7 +807,7 @@ async def handle_prompt(
         # 4. Отправляем запрос в API
         if model_key == 'Sora - Генерация изображений':
             print('sora generate')
-            result_urls = await generate_image(image_urls, prompt)
+            result_urls = await generate_image(prompt, image_urls)
         else:
             #result_urls = await generate_on_nexus(params)
             result_urls = await generate_on_api(params)
