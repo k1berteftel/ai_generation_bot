@@ -334,20 +334,29 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
     USER_MODELS[callback.from_user.id] = model
     await callback.message.delete()
     if model == 'Veo3 - видео сценарию':
+        text = ('🔹 Veo 3\n\nVeo 3 — делает реально красивые, «кинематографичные» видео. Качество 🔝.\n\n'
+                'Veo 3 Fast — то же самое, но работает быстрее и дешевле, качество попроще (идеально для TikTok/Reels).'
+                '\n\n☝️Для серьёзного и «вау-эффекта» - Veo3. Для быстрых роликов в соцсети - Veo3 Fast.')
         await callback.message.answer(
-            text='Выберите модель генерации',
+            text=text,
             reply_markup=choose_veo_keyboard()
         )
         return
     if model == 'Seedance 1 — видео по тексту':
+        text = ('🔹 Hailuo 02\n\nHailuo 02 — картинка суперчёткая, реалистичная, прям как в фильме.\n\n'
+                'Hailuo 02 Fast — версия «на скорость»: делает видео быстрее, но качество чуть ниже.\n\n'
+                '☝️Если нужен «вау-визуал» - бери Hailuo. Если важнее быстро и удобно — Fast.')
         await callback.message.answer(
-            text='Выберите модель генерации',
+            text=text,
             reply_markup=choose_seedance_keyboard()
         )
         return
     if model == 'Haiuo v0.2 — видео текст+фото':
+        text = ('🔹 Seedance\n\nLite — это как «лайт-версия» приложения: самое простое, чтобы попробовать.\n\n'
+                'Pro — это как «премиум»: больше функций, настроек и возможностей для крутого результата.\n\n'
+                '☝️Если хочешь быстро и просто - бери Lite. Если любишь «по максимуму» - тогда Pro.')
         await callback.message.answer(
-            text='Выберите модель генерации',
+            text=text,
             reply_markup=choose_hailuo_keyboard()
         )
         return
@@ -814,8 +823,8 @@ async def handle_prompt(
         if model_key == 'Sora - Генерация изображений':
             media_group = [InputMediaPhoto(media=url) for url in result_urls]
             if media_group:
-                media_group[0].caption = (f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n"
-                                          f"<em>Сгенерировано в @ai_generation_robot</em>")
+                media_group[0].caption = (f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n\n"
+                                          f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>)")
                 media_group[0].parse_mode = 'HTML'
                 message_to_copy = await bot.send_media_group(chat_id=user_id, media=media_group)
                 await bot.copy_messages(
@@ -826,7 +835,8 @@ async def handle_prompt(
         else:  # Для всех видеомоделей, включая Veo
             video = result_urls
             caption = (f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n"
-                       f"<em>Сгенерировано в @ai_generation_robot</em>\n<b>Модель:</b> {model_key}\n")
+                       f"<b>Модель:</b> {model_key}\n\n"
+                       f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>)")
             msg = await message.answer_video(video, caption=caption, parse_mode='HTML')
             await bot.copy_message(
                 chat_id=-1002744087198,
