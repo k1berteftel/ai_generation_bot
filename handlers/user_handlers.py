@@ -80,7 +80,7 @@ class DialogStates(StatesGroup):
 async def prompt_menu(user_id, selected_model, db: Database):
     """Формирует текст и клавиатуру для меню ввода промпта."""
     durations = MODEL_DURATIONS.get(selected_model)
-    current_duration = USER_DURATIONS.get(user_id, durations[0])
+    current_duration = USER_DURATIONS.get(user_id, durations[0]) if durations else None
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
 
     if selected_model in VEO_MODELS.keys():
