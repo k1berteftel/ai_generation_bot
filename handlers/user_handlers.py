@@ -824,7 +824,7 @@ async def handle_prompt(
             media_group = [InputMediaPhoto(media=url) for url in result_urls]
             if media_group:
                 media_group[0].caption = (f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n\n"
-                                          f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>)")
+                                          f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>")
                 media_group[0].parse_mode = 'HTML'
                 message_to_copy = await bot.send_media_group(chat_id=user_id, media=media_group)
                 await bot.copy_messages(
@@ -836,7 +836,7 @@ async def handle_prompt(
             video = result_urls
             caption = (f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n"
                        f"<b>Модель:</b> {model_key}\n\n"
-                       f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>)")
+                       f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>")
             msg = await message.answer_video(video, caption=caption, parse_mode='HTML')
             await bot.copy_message(
                 chat_id=-1002744087198,
