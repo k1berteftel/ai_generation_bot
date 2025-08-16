@@ -2,7 +2,7 @@
 import json
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from data.constants import MODELS, MODEL_DURATIONS, ASPECT_INPUTS, VEO_MODELS
+from data.constants import MODELS, MODEL_DURATIONS, ASPECT_INPUTS, VEO_MODELS, SEEDANCE_MODELS, HAILUO_MODELS
 
 USER_MODELS = {}
 USER_DURATIONS = {}
@@ -145,7 +145,7 @@ def model_menu() -> InlineKeyboardMarkup:
 
 
 def duration_menu(selected_model: str, user_id: int) -> InlineKeyboardMarkup:
-    durations = MODEL_DURATIONS.get(selected_model, ["5 сек"])
+    durations = MODEL_DURATIONS.get(selected_model)
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     kb = []
     for d in durations:
@@ -158,28 +158,36 @@ def duration_menu(selected_model: str, user_id: int) -> InlineKeyboardMarkup:
 def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMarkup:
     back = f'model_{selected_model}'
     if selected_model in VEO_MODELS.keys():
-        back = f'veo_choose|{selected_model}'
+        back = f'sub_model_choose|veo|{selected_model}'
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],
+                [InlineKeyboardButton(text="ℹ️ Примеры", url="https://t.me/veo3guide")],
                 [InlineKeyboardButton(text="⬅️ Назад", callback_data=back)],
             ]
         )
+    if selected_model in SEEDANCE_MODELS.keys():
+        back = f'sub_model_choose|seedance|{selected_model}'
+    if selected_model in HAILUO_MODELS.keys():
+        back = f'sub_model_choose|hailuo|{selected_model}'
 
     if selected_model == 'Sora - Генерация изображений':
         back = 'photo_menu'
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],
+                [InlineKeyboardButton(text="ℹ️ Примеры", url="https://t.me/veo3guide")],
                 [InlineKeyboardButton(text="⬅️ Назад", callback_data=back)],
             ]
         )
 
-    current_duration = USER_DURATIONS.get(user_id, MODEL_DURATIONS.get(selected_model, ["5 сек"])[0])
+    current_duration = USER_DURATIONS.get(user_id, MODEL_DURATIONS.get(selected_model)[0])
     row1 = [
         InlineKeyboardButton(text=f"⏱ Длительность: {current_duration}", callback_data="choose_duration"),
         InlineKeyboardButton(text="📐 Соотношение сторон", callback_data="choose_aspect"),
     ]
+    if selected_model in HAILUO_MODELS.keys():
+        row1 = [
+            InlineKeyboardButton(text=f"⏱ Длительность: {current_duration}", callback_data="choose_duration")
+        ]
     row2 = []
     if selected_model == "Pixverse v4.5":
         pixverse_mode = USER_PIXVERSE_MODE.get(user_id, "smooth")
@@ -187,7 +195,7 @@ def get_prompt_keyboard(user_id: int, selected_model: str) -> InlineKeyboardMark
                                      callback_data="toggle_pixverse_mode")]
     return InlineKeyboardMarkup(
         inline_keyboard=[row1] + ([row2] if row2 else []) + [
-            [InlineKeyboardButton(text="ℹ️ Инструкция", url="https://t.me/veo3guide")],
+            [InlineKeyboardButton(text="ℹ️ Примеры", url="https://t.me/veo3guide")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data=back)],
         ]
     )
@@ -197,7 +205,7 @@ def get_exemple_keyboard(url: str, photo_menu: bool = False):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='😀 Начать генерацию', callback_data='start_gen')],
-            [InlineKeyboardButton(text='ℹ️ Инструкция', url=url)],
+            [InlineKeyboardButton(text='ℹ️ Примеры', url=url)],
             [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model' if not photo_menu else 'photo_menu')]
         ]
     )
@@ -208,7 +216,31 @@ def choose_veo_keyboard():
     keyboard = []
     for model in VEO_MODELS.keys():
         keyboard.append(
-            [InlineKeyboardButton(text=model, callback_data=f'veo_choose|{model}')]
+            [InlineKeyboardButton(text=model, callback_data=f'sub_model_choose|veo|{model}')]
+        )
+    keyboard.append(
+        [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model')]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def choose_seedance_keyboard():
+    keyboard = []
+    for model in SEEDANCE_MODELS.keys():
+        keyboard.append(
+            [InlineKeyboardButton(text=model, callback_data=f'sub_model_choose|seedance|{model}')]
+        )
+    keyboard.append(
+        [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model')]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def choose_hailuo_keyboard():
+    keyboard = []
+    for model in HAILUO_MODELS.keys():
+        keyboard.append(
+            [InlineKeyboardButton(text=model, callback_data=f'sub_model_choose|hailio|{model}')]
         )
     keyboard.append(
         [InlineKeyboardButton(text='⬅️ Назад', callback_data='choose_model')]

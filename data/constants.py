@@ -3,17 +3,26 @@
 MODELS = {
     #'Sora - Генерация изображений': 'gpt-4o-image',
     "Veo3 - видео сценарию": "veo3_quality",
-    #"Veo3 (Качественный)": "veo3_quality",
-    #"Veo3 (Бюджетный)": "veo3_fast",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
-    "Seedance 1 Lite — видео по тексту": "seedance-1-lite",
+    "Seedance 1 — видео по тексту": "seedance-1",
+    'Haiuo v0.2 — видео текст+фото': 'hailuo-0.2'
     # "Luma Ray-2": "luma/ray-2-720p",
 }
 
 VEO_MODELS = {
     "Veo3 (Качественный)": "veo3_quality",
     "Veo3 (Бюджетный)": "veo3_fast",
+}
+
+SEEDANCE_MODELS = {
+    'Seedance 1 Lite': 'seedance-1-lite',
+    'Seedance 1 Pro': 'seedance-1-pro'
+}
+
+HAILUO_MODELS = {
+    'Haiuo v0.2 Обычный': 'hailuo-02',
+    'Haiuo v0.2 Fast': 'hailuo-02-fast'
 }
 
 MODELS_EXAMPLE_OBJECT = {
@@ -55,7 +64,7 @@ MODELS_EXAMPLE_OBJECT = {
         ],
         'manual': 'https://t.me/kling_promt2025'
     },
-    "Seedance 1 Lite — видео по тексту": {
+    "Seedance 1 — видео по тексту": {
         'name': "<b>seedance-1-lite</b>",
         'description': 'Быстрое видео по тексту.',
         'examples':  [
@@ -70,6 +79,19 @@ MODELS_EXAMPLE_OBJECT = {
     },
     "Minimax - Видео по фото": {
         'name': '<b>minimax-video-01</b>',
+        'description': 'Простое видео по тексту. Может работать с фото.',
+        'examples': [
+            {
+                'name': '',
+                'media': 'medias/minimax/minimax.mp4',
+                'content_type': 'gif',
+                'prompt': '<blockquote><b>Черный кот переходит дорогу</b></blockquote>'
+            },
+        ],
+        'manual': 'https://t.me/minimax2025'
+    },
+    'Haiuo v0.2 — видео текст+фото': {
+        'name': '<b>haulio-02</b>',
         'description': 'Простое видео по тексту. Может работать с фото.',
         'examples': [
             {
@@ -119,7 +141,7 @@ MODEL_DESCRIPTIONS = {
     "Veo3 - видео сценарию": "Инструкция:  https://t.me/veo3_2025         \nДелает видео и звук по тексту. Может работать с фото.",
     # "Pixverse v4.5": "Мощная модель Pixverse версии 4.5: создаёт 5–8-секундные ролики в 540p–1080p, с плавной анимацией, лучше отражает сложные действия и больше «понимает» запросы. Подходит для динамичных сторителлинговых клипов.",
     "Kling v2.1 — видео текст+фото": "Инструкция:   https://t.me/kling_promt2025 \nГенерирует видео по тексту или фото.",
-    "Seedance 1 Lite — видео по тексту": "Инструкция:    https://t.me/seedance25 \n\nБыстрое видео по тексту.",
+    "Seedance 1 — видео по тексту": "Инструкция:    https://t.me/seedance25 \n\nБыстрое видео по тексту.",
     "Minimax - Видео по фото": "Инструкция:  https://t.me/minimax2025 \n\nПростое видео по тексту. Может работать с фото.",
     "Sora - Генерация изображений": "Инструкция:  https://t.me/sora_2026 \n\n Генерация изображении"
 }
@@ -128,7 +150,7 @@ MODEL_IMAGE_FIELD = {
     "Veo3 - видео сценарию": "image_url",
     # "Pixverse v4.5": "image",
     "Kling v2.1 — видео текст+фото": "start_image",
-    "Seedance 1 Lite — видео по тексту": "image",
+    "Seedance 1 — видео по тексту": "image",
     'Sora - Генерация изображений': 'image_urls'
     # "Luma Ray-2": "image",
 }
@@ -137,12 +159,20 @@ MODEL_DURATIONS = {
     # "Veo3": ["3 сек", "5 сек", "10 сек"],
     # "Pixverse v4.5": ["5 сек", "8 сек"],
     "Kling v2.1 — видео текст+фото": ["5 сек", "10 сек"],
-    "Seedance 1 Lite — видео по тексту": ["5 сек", "10 сек"],
+    "Seedance 1 — видео по тексту": ["5 сек", "10 сек"],
+    'Seedance 1 Lite': ["5 сек", "10 сек"],
+    'Seedance 1 Pro': ["5 сек", "10 сек"],
+    'Haiuo v0.2 — видео текст+фото': ["6 сек", "10 сек"],
+    'Haiuo v0.2 Обычный': ["6 сек", "10 сек"],
+    'Haiuo v0.2 Fast': ["6 сек", "10 сек"],
     # "Luma Ray-2": ["5 сек", "9 сек"]
 }
 
 DURATION_PRICES = {
-    "Seedance 1 Lite — видео по тексту": {"5 сек": 80, "10 сек": 160},
+    'Seedance 1 Lite': {"5 сек": 60, "10 сек": 100},
+    'Seedance 1 Pro': {"5 сек": 80, "10 сек": 130},
+    'Haiuo v0.2 Обычный': {"6 сек": 80, "10 сек": 130},
+    'Haiuo v0.2 Fast': {"6 сек": 60, "10 сек": 100},
     # "Luma Ray-2": {"5 сек": 7, "9 сек": 14},
     "Kling v2.1 — видео текст+фото": {"5 сек": 120, "10 сек": 240},
     # "Pixverse v4.5": {

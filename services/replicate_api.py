@@ -6,6 +6,7 @@ from APIKeyManager.apikeymanager import APIKeyManager
 from data.constants import MODELS, ASPECT_INPUTS, MODEL_IMAGE_FIELD
 from utils.helpers import _image_to_data_uri
 
+
 async def generate_replicate_async(
         key_manager: APIKeyManager, model: str, prompt: str, aspect_ratio: str = "16:9",
         duration: str = '5 сек', pixverse_mode: str | None = None, image_path: str | None = None

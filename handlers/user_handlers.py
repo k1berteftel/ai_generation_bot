@@ -24,7 +24,7 @@ from keyboards.inline import (
     balance_stars_menu,
     url_button, json_to_keyboard, model_menu, get_prompt_keyboard, duration_menu,
     subscribe_button_keyboard, get_exemple_keyboard, get_student_menu,
-    get_photo_menu, choose_veo_keyboard,
+    get_photo_menu, choose_veo_keyboard, choose_seedance_keyboard, choose_hailuo_keyboard,
     USER_MODELS, USER_DURATIONS, USER_PIXVERSE_MODE, USER_ASPECT_RATIO
 )
 from services.nexus_api import generate_on_nexus, generate_on_api
@@ -32,7 +32,7 @@ from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
     download_and_upload_images, check_user_op_single
-from utils.chat_gpt import get_text_answer, get_assistant_and_thread, generate_image
+from utils.chat_gpt import get_text_answer, generate_image, get_assistant_and_thread
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
@@ -79,7 +79,7 @@ class DialogStates(StatesGroup):
 
 async def prompt_menu(user_id, selected_model, db: Database):
     """Формирует текст и клавиатуру для меню ввода промпта."""
-    durations = MODEL_DURATIONS.get(selected_model, ["5 сек"])
+    durations = MODEL_DURATIONS.get(selected_model)
     current_duration = USER_DURATIONS.get(user_id, durations[0])
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
 
@@ -132,6 +132,11 @@ async def prompt_menu(user_id, selected_model, db: Database):
         f"Соотношение сторон: <b>{aspect}</b>",
         f"Длительность: <b>{current_duration}</b>",
     ]
+    if selected_model in HAILUO_MODELS.keys():
+        prompt_lines = [
+            "💬 Напиши сценарий для видео или отправь фото с подписью:", "",
+            f"Длительность: <b>{current_duration}</b>",
+        ]
 
     pixverse_mode = None
     resolution = "720p"  # Установлено по умолчанию, можно сделать настраиваемым
@@ -258,13 +263,10 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
             free_generation = f'Следующая бесплатная генерация будет доступна <em>{next_generation.strftime("%Y-%m-%d %H:%M")}</em>🕜'
         text = (
             "<b>👋 Добро пожаловать в Super GPT!</b>\n\n"
-            "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей "
-            "и экспериментировать с искусственным интеллектом!\n\n"
+            "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей!\n\n"
             f"Ваш баланс: <b>{user.generations if not is_unlim else '∞'}</b> 💎\n"
             f'{free_generation}\n\n'
-            f"<b>📌 Совет:</b> Чтобы всегда иметь к нам быстрый доступ — закрепите бота в верхней части списка чатов. "
-            f"Так вы не упустите ни одной возможности творить с помощью AI!"
-            "Что хочешь сгенерировать сегодня?"
+            f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
         )
         await message.answer_video(
             video=FSInputFile(path='medias/menu_video.MP4'),
@@ -297,16 +299,18 @@ async def cb_back_main(callback: types.CallbackQuery, db: Database, state: FSMCo
         return
 
     chosen_model = USER_MODELS.get(user_id)
-    model_text = f"<b>{chosen_model}</b>" if chosen_model else "<i>не выбрана</i>"
     is_unlim = await db.user.check_unlim_status(user_id)
+    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+        free_generation = '🎁Вам доступна одна бесплатная генерация'
+    else:
+        next_generation = user.last_generation + datetime.timedelta(days=1)
+        free_generation = f'Следующая бесплатная генерация будет доступна <em>{next_generation.strftime("%Y-%m-%d %H:%M")}</em>🕜'
     text = (
         "<b>👋 Добро пожаловать в Super GPT!</b>\n\n"
-        "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей "
-        "и экспериментировать с искусственным интеллектом!\n\n"
-        f"Ваш баланс: <b>{user.generations if not is_unlim else '∞'}</b> 💎\n\n"
-        f"<b>📌 Совет:</b> Чтобы всегда иметь к нам быстрый доступ — закрепите бота в верхней части списка чатов. "
-        f"Так вы не упустите ни одной возможности творить с помощью AI!"
-        "Что хочешь сгенерировать сегодня?"
+        "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей!\n\n"
+        f"Ваш баланс: <b>{user.generations if not is_unlim else '∞'}</b> 💎\n"
+        f'{free_generation}\n\n'
+        f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
     )
     markup = get_main_menu_keyboard()
     try:
@@ -335,6 +339,18 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
             reply_markup=choose_veo_keyboard()
         )
         return
+    if model == 'Seedance 1 — видео по тексту':
+        await callback.message.answer(
+            text='Выберите модель генерации',
+            reply_markup=choose_seedance_keyboard()
+        )
+        return
+    if model == 'Haiuo v0.2 — видео текст+фото':
+        await callback.message.answer(
+            text='Выберите модель генерации',
+            reply_markup=choose_hailuo_keyboard()
+        )
+        return
     text, media_data, keyboard = await example_menu(model)
     if media_data[1] == 'photo':
         await callback.message.answer_photo(
@@ -356,14 +372,36 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
         )
 
 
+@user_router.callback_query(F.data.startswith('sub_model_choose'))
+async def start_veo_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
+    sub_model = callback.data.split('|')[-1]
+    user_id = callback.from_user.id
+    model = USER_MODELS.get(user_id)
+    await state.update_data(sub_model=sub_model)
+    text, media_data, keyboard = await example_menu(model)
+    await callback.message.delete()
+    if media_data[1] == 'video':
+        await callback.message.answer_video(
+            video=media_data[0],
+            caption=text,
+            reply_markup=keyboard
+        )
+    if media_data[1] == 'gif':
+        await callback.message.answer_animation(
+            animation=media_data[0],
+            caption=text,
+            reply_markup=keyboard
+        )
+
+
 @user_router.callback_query(F.data == 'start_chat')
 async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
-    assistant_id, thread_id = await get_assistant_and_thread()
-    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     await state.set_state(DialogStates.waiting_for_prompt)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
     text = ('🤖 SUPER GPT активен!\n\nЯ готов ответить на любые вопросы и помочь с идеями'
             '\nСпроси что-нибудь прямо сейчас!')
+    assistant_id, thread_id = await get_assistant_and_thread()
+    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     await callback.message.delete()
     await callback.message.answer_photo(
         photo=FSInputFile(path='medias/start_gpt.jpg'),
@@ -389,7 +427,7 @@ async def answer_gpt(message: types.Message, state: FSMContext):
         inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
     prompt = message.text if message.text else message.caption
     answer = await get_text_answer(prompt, assistant_id, thread_id)
-    if answer is None:
+    if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
     await msg_to_del.delete()
     await message.answer(answer, reply_markup=keyboard)
@@ -448,30 +486,13 @@ async def open_sora_menu(callback: types.CallbackQuery, db: Database, state: FSM
         )
 
 
-@user_router.callback_query(F.data.startswith('veo_choose'))
-async def start_veo_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
-    veo_model = callback.data.split('|')[-1]
-    user_id = callback.from_user.id
-    model = USER_MODELS.get(user_id)
-    await state.update_data(veo_model=veo_model)
-    text, media_data, keyboard = await example_menu(model)
-    await callback.message.delete()
-    await callback.message.answer_video(
-        video=media_data[0],
-        caption=text,
-        reply_markup=keyboard
-    )
-
-
 @user_router.callback_query(F.data == "start_gen")  # функция начала генерации
 async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
-    model = USER_MODELS.get(user_id)
     data = await state.get_data()
+    model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
     if data.get('mode'):
         model += '|text'
-    if model == 'Veo3 - видео сценарию':
-        model = data.get('veo_model')
     text, keyboard = await prompt_menu(callback.from_user.id, model, db)
     await state.set_state(GenStates.waiting_for_prompt)
     await callback.message.delete()
@@ -494,9 +515,7 @@ async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext, d
     aspect = callback.data.replace("aspect_", "")
     user_id = callback.from_user.id
     USER_ASPECT_RATIO[user_id] = aspect
-    selected_model = USER_MODELS.get(user_id)
-    if selected_model == 'Veo3 - видео сценарию':
-        selected_model = data.get('veo_model')
+    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
     if not selected_model:
         await cb_back_main(callback, state)  # Возврат в главное меню, если модель не выбрана
         return
@@ -518,9 +537,7 @@ async def cb_choose_duration(callback: types.CallbackQuery):
 async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id)
-    if selected_model == 'Veo3 - видео сценарию':
-        selected_model = data.get('veo_model')
+    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
     if not selected_model: return
 
     d = callback.data.replace("set_duration_", "")
@@ -534,9 +551,7 @@ async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: 
 async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id)
-    if selected_model == 'Veo3 - видео сценарию':
-        selected_model = data.get('veo_model')
+    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
     if not selected_model: return
 
     prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
@@ -548,9 +563,7 @@ async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db
 async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id)
-    if selected_model == 'Veo3 - видео сценарию':
-        selected_model = data.get('veo_model')
+    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
 
     current = USER_PIXVERSE_MODE.get(user_id, "smooth")
     USER_PIXVERSE_MODE[user_id] = "normal" if current == "smooth" else "smooth"
@@ -740,8 +753,8 @@ async def handle_prompt(
             cost = TEXT_GPT_COST
 
     elif model_key == 'Veo3 - видео сценарию':
-        cost = VEO_COST.get(data.get('veo_model'))
-        veo_model = VEO_MODELS.get(data.get('veo_model'))
+        cost = VEO_COST.get(data.get('sub_model'))
+        veo_model = VEO_MODELS.get(data.get('sub_model'))
 
         params["model_name"] = veo_model
         if image_urls:
@@ -752,9 +765,19 @@ async def handle_prompt(
             params["image_urls"] = image_urls
         aspect_ratio = USER_ASPECT_RATIO.get(user_id, "16:9")
         params["model_name"] = MODELS.get(model_key)
+
+        if model_key == 'Seedance 1 — видео по тексту':
+            params["model_name"] = SEEDANCE_MODELS.get(data.get('sub_model'))
+        if model_key == 'Haiuo v0.2 — видео текст+фото':
+            params["model_name"] = HAILUO_MODELS.get(data.get('sub_model'))
+
         if model_key in MODEL_DURATIONS:
             duration_str = USER_DURATIONS.get(user_id, MODEL_DURATIONS[model_key][0])
-            cost = calculate_generation_cost(model_key, duration_str)
+            if model_key in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']:
+                sub_model = data.get('sub_model')
+                cost = calculate_generation_cost(sub_model, duration_str)
+            else:
+                cost = calculate_generation_cost(model_key, duration_str)
             params["duration"] = int(duration_str.replace(" сек", ""))
             params["aspect_ratio"] = aspect_ratio
 
@@ -791,7 +814,8 @@ async def handle_prompt(
         if model_key == 'Sora - Генерация изображений':
             media_group = [InputMediaPhoto(media=url) for url in result_urls]
             if media_group:
-                media_group[0].caption = f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>"
+                media_group[0].caption = (f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n"
+                                          f"<em>Сгенерировано в @ai_generation_robot</em>")
                 media_group[0].parse_mode = 'HTML'
                 message_to_copy = await bot.send_media_group(chat_id=user_id, media=media_group)
                 await bot.copy_messages(
@@ -801,7 +825,8 @@ async def handle_prompt(
                 )
         else:  # Для всех видеомоделей, включая Veo
             video = result_urls
-            caption = f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n<b>Модель:</b> {model_key}"
+            caption = (f"🎬 <b>Видео готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n"
+                       f"<em>Сгенерировано в @ai_generation_robot</em>\n<b>Модель:</b> {model_key}\n")
             msg = await message.answer_video(video, caption=caption, parse_mode='HTML')
             await bot.copy_message(
                 chat_id=-1002744087198,
@@ -817,8 +842,12 @@ async def handle_prompt(
         await db.user.increase_value(user_id, 'generations', cost)
         await db.user.increase_value(user_id, 'completed', -1)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='back_main')]])
-        await msg.edit_text(f"❌ <b>Ошибка:</b>\n<code>{html.escape(str(e))}</code>\n\nВаши 💎 возвращены на баланс.", reply_markup=keyboard,
-                            parse_mode='HTML')
+        try:
+            await msg.edit_text(f"❌ <b>Ошибка:</b>\n<code>{html.escape(str(e))}</code>\n\nВаши 💎 возвращены на баланс.", reply_markup=keyboard,
+                                parse_mode='HTML')
+        except Exception:
+            await msg.answer(f"❌ <b>Ошибка:</b>\n<code>{html.escape(str(e))}</code>\n\nВаши 💎 возвращены на баланс.", reply_markup=keyboard,
+                                parse_mode='HTML')
 
 
 @user_router.pre_checkout_query()
