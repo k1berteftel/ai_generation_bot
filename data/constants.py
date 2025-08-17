@@ -96,9 +96,19 @@ MODELS_EXAMPLE_OBJECT = {
         'examples': [
             {
                 'name': '',
-                'media': 'medias/minimax/minimax.mp4',
+                'media': 'medias/hailuo/hailuo_ex.mp4',
                 'content_type': 'gif',
-                'prompt': '<blockquote><b>Черный кот переходит дорогу</b></blockquote>'
+                'prompt': '<blockquote expandable><b>The setting has warm lighting from ' #Create a realistic vertical video (9:16), as if recorded with an iPhone at an outdoor seasons as summer. 
+                          'streetlights or soft party lights. A little boy around 2 to 3 years old, with light '
+                          'skin tone, broun hair, and big green expressive eyes, runs joyfully toward a young '
+                          'couple sitting close together. The couple must look exactly like the people in the '
+                          'attached photo — no changes to their facial features, skin tone, hairstyle, or clothing. '
+                          'They both have medium skin, man have dark hair, women have broun hair and are man '
+                          'wearing summer outfits. The child should clearly look like the boy, with features that '
+                          'naturally combine both parents. He hugs them lovingly, wrapping her arms around them, '
+                          'smiling and laughing. The couple smiles and embraces he warmly. The video should feel '
+                          'authentic, as if casually filmed by a friend or family member on a phone — slightly '
+                          'shaky, casually composed, and emotionally genuine</b></blockquote>'
             },
         ],
         'manual': 'https://t.me/minimax2025'
