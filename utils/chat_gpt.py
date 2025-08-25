@@ -1,26 +1,20 @@
-import os
+import json
 import asyncio
+import re
 
 import httpx
-import base64
-import random
-import string
+import aiohttp
 
 from openai import AsyncOpenAI
-import replicate
 
 from utils.helpers import upload_image_to_imgbb
 
 import config
 
-
 client = AsyncOpenAI(
     api_key=config.openai_api_token,
     http_client=httpx.AsyncClient(proxy='http://eAzEJHXk:6WL4egih@46.232.31.88:62560')
 )
-
-
-app = replicate.Client(api_token=config.replicate_api_token)
 
 
 async def get_assistant_and_thread(model: str = 'gpt-4.1-mini'):
@@ -59,34 +53,54 @@ async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str |
     print(info)
     if run.status == "completed":
         messages = await client.beta.threads.messages.list(thread_id=thread_id)
-        #print(messages)
+        # print(messages)
 
         async for message in messages:
             print(message.content[0].text.value)
             return message.content[0].text.value
 
 
+def find_image_links(text):
+    # Регулярное выражение для поиска строк, начинающихся с ![gen и содержащих ссылку
+    pattern = r'!\[gen[^\]]+\]\((https?://[^\s)]+)\)'
+
+    # Поиск всех совпадений в тексте
+    matches = re.findall(pattern, text)
+
+    return matches
+
+
 async def generate_image(prompt: str, photos: list[str]) -> list[str] | None:
-    data = {
-        "prompt": prompt,
-        "openai_api_key": config.openai_api_token
+    url = 'https://api.unifically.com/v1/chat/completions'
+    #prompt = await translate_text(prompt)
+    if not prompt:
+        return None
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {config.unifically_api_token}'
     }
-    #'https://i.ibb.co/JFzb41y9/7f3a359df8e1.jpg'
-    if photos:
-        data["input_images"] = photos
-    output = await app.predictions.async_create(
-        model="openai/gpt-image-1",
-        input=data
-    )
-    prediction_id = output.id
-    prediction = await app.predictions.async_get(prediction_id)
-    while True:
-        if prediction.status == 'failed':
-            return None
-        if prediction.status == 'succeeded':
-            return prediction.output
-        await asyncio.sleep(4)
-        prediction = await app.predictions.async_get(prediction_id)
+    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in photos]
+    data = {
+        "model": "gpt-4o-image-vip",
+        "messages": [
+            {
+                "role": "user",
+                'content': [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    },
+                    *images
+                ]
+            }
+        ],
+        "stream": True
+    }
+    async with aiohttp.ClientSession() as client:
+        async with client.post(url, headers=headers, json=data, ssl=False) as response:
+            content = str(await response.content.read())
+            links = find_image_links(content)
+            return links
 
 
-#print(asyncio.run(generate_image('Сделай фото природы в горах', [])))
+#print(asyncio.run(generate_image('Сделай девушку азиаткой', [])))

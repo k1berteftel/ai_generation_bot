@@ -160,7 +160,7 @@ async def example_menu(selected_model: str, mode: str | None = None) -> tuple:
         model = MODELS_EXAMPLE_OBJECT[selected_model]
     url = model.get("manual")
     example = model.get("examples")[0]
-    text = (f'{model.get("name")}\n<b>Описание:</b> <em>{model.get("description")}</em>\n\n'
+    text = (f'{model.get("name")}\n<b>Описание:</b> {model.get("description")}\n\n'
             f'<u>{example.get("name") if example.get("name") else ""}</u>'
             f'{example.get("prompt")}\n\n🔗Инструкция: {url}')
     media = FSInputFile(path=example.get('media'))

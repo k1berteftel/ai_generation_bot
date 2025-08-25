@@ -2,11 +2,11 @@
 
 MODELS = {
     #'Sora - Генерация изображений': 'gpt-4o-image',
-    "Veo3 - видео сценарию": "veo3_quality",
+    'Haiuo v0.2 — видео текст+фото': 'hailuo-0.2',
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 — видео по тексту": "seedance-1",
-    'Haiuo v0.2 — видео текст+фото': 'hailuo-0.2'
+    "Veo3 - видео сценарию": "veo3_quality",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
 
@@ -28,7 +28,9 @@ HAILUO_MODELS = {
 MODELS_EXAMPLE_OBJECT = {
     "Veo3 - видео сценарию": {
         'name': '<b>Veo3</b>',
-        'description': 'Делает видео и звук по тексту. Может работать с фото.',
+        'description': '<em>Делает видео и звук по тексту. Может работать с фото.</em>\n❗️ВАЖНО\n'
+                       '• Видео ТОЛЬКО в горизонтальном формате.\n • Чтобы озвучка была на русском языке нужно '
+                       'указать: «на русском: (ВАШ ТЕКСТ)».',
         'examples':  [
             {
                 'name': 'Ведущий и бабушка\n',
@@ -43,7 +45,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     "Kling v2.1 — видео текст+фото": {
         'name': '<b>kling-v2.1-master</b>',
-        'description': 'Генерирует видео по тексту или фото.',
+        'description': '<em>Генерирует видео по тексту или фото.</em>',
         'examples': [
             {
                 'name': '',
@@ -66,7 +68,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     "Seedance 1 — видео по тексту": {
         'name': "<b>seedance-1-lite</b>",
-        'description': 'Быстрое видео по тексту.',
+        'description': '<em>Быстрое видео по тексту.</em>',
         'examples':  [
             {
                 'name': '',
@@ -79,7 +81,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     "Minimax - Видео по фото": {
         'name': '<b>minimax-video-01</b>',
-        'description': 'Простое видео по тексту. Может работать с фото.',
+        'description': '<em>Простое видео по тексту. Может работать с фото.</em>',
         'examples': [
             {
                 'name': '',
@@ -92,7 +94,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     'Haiuo v0.2 — видео текст+фото': {
         'name': '<b>haulio-02</b>',
-        'description': 'Простое видео по тексту. Может работать с фото.',
+        'description': '<em>Простое видео по тексту. Может работать с фото.</em>',
         'examples': [
             {
                 'name': '',
@@ -115,7 +117,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     'Sora - Генерация изображений': {
         'name': '<b>gpt-4o-image</b>',
-        'description': 'Генерация изображений',
+        'description': '<em>Генерация изображений</em>',
         'examples': [
             {
                 'name': '',
@@ -132,7 +134,7 @@ MODELS_EXAMPLE_OBJECT = {
     },
     'Sora - Генерация изображений|text': {
         'name': '<b>gpt-4o-image</b>',
-        'description': 'Генерация изображений',
+        'description': '<em>Генерация изображений</em>',
         'examples': [
             {
                 'name': '',
