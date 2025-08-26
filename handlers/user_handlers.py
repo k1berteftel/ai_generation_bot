@@ -86,6 +86,13 @@ async def prompt_menu(user_id, selected_model, db: Database):
 
     if selected_model in VEO_MODELS.keys():
         cost = VEO_COST.get(selected_model)
+        if user.generations < cost:
+            text = (f'⚡️Цена генерации: {cost}💎\nТвой баланс составляет: {user.generations} 💎\n\n'
+                    f'🎁Получайте 10 💎 за каждого приглашённого пользователя\n💸 Зарабатывайте 10% от всех его пополнений'
+                    f'\n\n<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>\nИспользуйте реферальную систему '
+                    f'и получайте вознаграждение за активность!\n\n👇Или пополняй баланс по кнопке ниже')
+            keyboard = balance_choose_menu()
+            return text, keyboard
         cost_str = get_crystal_price_str(cost)
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
