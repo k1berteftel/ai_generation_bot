@@ -82,20 +82,22 @@ async def prompt_menu(user_id, selected_model, db: Database):
     durations = MODEL_DURATIONS.get(selected_model)
     current_duration = USER_DURATIONS.get(user_id, durations[0]) if durations else None
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
+    user = await db.user.get_user(user_id)
 
     if selected_model in VEO_MODELS.keys():
+        cost = VEO_COST.get(selected_model)
+        cost_str = get_crystal_price_str(cost)
         prompt_lines = [
             "💬 Напиши промпт для генерации видео.",
             "Вы можете прикрепить фото для референса.",
             "",
-            f"Стоимость: <b>{get_crystal_price_str(VEO_COST.get(selected_model))}</b>"
+            f"Стоимость: <b>{cost_str}</b>"
         ]
         text = "\n".join(prompt_lines)
         keyboard = get_prompt_keyboard(user_id, selected_model)
         return text, keyboard
 
     if selected_model == 'Sora - Генерация изображений':
-        user = await db.user.get_user(user_id)
         if user.generations >= 40:
             prompt_lines = [
                 "💬 Напиши промпт для генерации изображения.",
@@ -107,7 +109,7 @@ async def prompt_menu(user_id, selected_model, db: Database):
             keyboard = get_prompt_keyboard(user_id, selected_model)
             return text, keyboard
         else:
-            text = (f'⚡️Цена генерации: 40💎\nТвой баланс составляет: {user.generations} 💎\n\n'
+            text = (f'⚡️Цена генерации: {IMAGE_GPT_COST}💎\nТвой баланс составляет: {user.generations} 💎\n\n'
                     f'🎁Получайте 10 💎 за каждого приглашённого пользователя\n💸 Зарабатывайте 10% от всех его пополнений'
                     f'\n\n<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>\nИспользуйте реферальную систему '
                     f'и получайте вознаграждение за активность!\n\n👇Или пополняй баланс по кнопке ниже')
@@ -145,6 +147,13 @@ async def prompt_menu(user_id, selected_model, db: Database):
         prompt_lines.append(f"Режим: <b>{'Smooth' if pixverse_mode == 'smooth' else 'Normal'}</b>")
 
     cost = calculate_generation_cost(selected_model, current_duration, pixverse_mode, resolution)
+    if cost > user.generations:
+        text = (f'⚡️Цена генерации: {cost}💎\nТвой баланс составляет: {user.generations} 💎\n\n'
+                f'🎁Получайте 10 💎 за каждого приглашённого пользователя\n💸 Зарабатывайте 10% от всех его пополнений'
+                f'\n\n<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>\nИспользуйте реферальную систему '
+                f'и получайте вознаграждение за активность!\n\n👇Или пополняй баланс по кнопке ниже')
+        keyboard = balance_choose_menu()
+        return text, keyboard
     prompt_lines.append(f"Стоимость: <b>{get_crystal_price_str(cost)}</b>")
 
     text = "\n".join(prompt_lines)
