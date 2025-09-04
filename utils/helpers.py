@@ -24,6 +24,7 @@ def calculate_generation_cost(model: str, duration: str, pixverse_mode: str = No
         key = f"{res}_{mode}_{duration}"
         return DURATION_PRICES[model].get(key)
 
+    print(model)
     return DURATION_PRICES.get(model, {}).get(duration)
 
 def get_crystal_price_str(cost: int | None) -> str:
