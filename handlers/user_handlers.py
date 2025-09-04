@@ -31,8 +31,8 @@ from services.nexus_api import generate_on_nexus, generate_on_api
 from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
-    download_and_upload_images, check_user_op_single
-from utils.chat_gpt import get_text_answer, generate_image, get_assistant_and_thread
+    download_and_upload_images, check_user_op_single, upload_image_to_imgbb
+from utils.chat_gpt import get_text_answer, generate_image, get_assistant_and_thread, solve_task
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
@@ -75,6 +75,8 @@ class GenStates(StatesGroup):
 
 class DialogStates(StatesGroup):
     waiting_for_prompt = State()
+    question_answer = State()
+    get_tasks = State()
 
 
 async def prompt_menu(user_id, selected_model, db: Database):
@@ -350,18 +352,18 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
     USER_MODELS[callback.from_user.id] = model
     await callback.message.delete()
     if model == 'Veo3 - видео сценарию':
-        text = ('🔹 Veo 3\n\nVeo 3 — делает реально красивые, «кинематографичные» видео. Качество 🔝.\n\n'
-                'Veo 3 Fast — то же самое, но работает быстрее и дешевле, качество попроще (идеально для TikTok/Reels).'
-                '\n\n☝️Для серьёзного и «вау-эффекта» - Veo3. Для быстрых роликов в соцсети - Veo3 Fast.')
+        text = ('🔹 Hailuo 02\n\nHailuo 02 — картинка суперчёткая, реалистичная, прям как в фильме.\n\n'
+                'Hailuo 02 Fast — версия «на скорость»: делает видео быстрее, но качество чуть ниже.\n\n'
+                '☝️Если нужен «вау-визуал» - бери Hailuo. Если важнее быстро и удобно — Fast.')
         await callback.message.answer(
             text=text,
             reply_markup=choose_veo_keyboard()
         )
         return
     if model == 'Seedance 1 — видео по тексту':
-        text = ('🔹 Hailuo 02\n\nHailuo 02 — картинка суперчёткая, реалистичная, прям как в фильме.\n\n'
-                'Hailuo 02 Fast — версия «на скорость»: делает видео быстрее, но качество чуть ниже.\n\n'
-                '☝️Если нужен «вау-визуал» - бери Hailuo. Если важнее быстро и удобно — Fast.')
+        text = ('🔹 Veo 3\n\nVeo 3 — делает реально красивые, «кинематографичные» видео. Качество 🔝.\n\n'
+                'Veo 3 Fast — то же самое, но работает быстрее и дешевле, качество попроще (идеально для TikTok/Reels).'
+                '\n\n☝️Для серьёзного и «вау-эффекта» - Veo3. Для быстрых роликов в соцсети - Veo3 Fast.')
         await callback.message.answer(
             text=text,
             reply_markup=choose_seedance_keyboard()
@@ -459,11 +461,82 @@ async def answer_gpt(message: types.Message, state: FSMContext):
 
 
 @user_router.callback_query(F.data == 'for_students')
-async def open_students_menu(callback: types.CallbackQuery):
-    text = 'В данном меню собраны нейронные сети, которые могут помочь вам с учебой:'  # сгенерировать текст в qwen
+async def open_students_menu(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    text = '🎁Данные нейронные сети помогут вам во время учебы'  # сгенерировать текст в qwen
     keyboard = get_student_menu()
     await callback.message.delete()
     await callback.message.answer(text=text, reply_markup=keyboard, parse_mode='HTML')
+
+
+@user_router.callback_query(F.data == 'student_dialog')
+async def student_dialog(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(DialogStates.question_answer)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='for_students')]])
+    text = ('Я готов ответить на любые вопросы и помочь вам с учебными задачами'
+            '\nСпроси что-нибудь прямо сейчас!')
+    prompt = 'Ты помощник в учебных вопросах и отвечаешь только на вопросы связанные с учебой'
+    assistant_id, thread_id = await get_assistant_and_thread(role=prompt)
+    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    await callback.message.delete()
+    await callback.message.answer(
+        text=text,
+        reply_markup=keyboard,
+        parse_mode='HTML'
+    )
+
+
+@user_router.message(F.text, DialogStates.question_answer)
+async def question_answer(message: types.Message, state: FSMContext):
+    try:
+        await message.bot.edit_message_reply_markup(
+            chat_id=message.from_user.id,
+            message_id=message.message_id - 1
+        )
+    except Exception:
+        ...
+    msg_to_del = await message.answer('✍️')
+    state_data = await state.get_data()
+    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='for_students')]])
+    prompt = message.text if message.text else message.caption
+    answer = await get_text_answer(prompt, assistant_id, thread_id)
+    if not answer:
+        answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    await msg_to_del.delete()
+    await message.answer(answer, reply_markup=keyboard)
+
+
+@user_router.callback_query(F.data == 'solve_task')
+async def switch_get_task(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(DialogStates.get_tasks)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
+    await callback.message.delete()
+    await callback.message.answer('Отправьте фото задачи, которую вы хотите решить⬇️')
+
+
+@user_router.message(F.photo, DialogStates.get_tasks)
+async def process_task(message: types.Message, state: FSMContext):
+    try:
+        await message.bot.edit_message_reply_markup(
+            chat_id=message.from_user.id,
+            message_id=message.message_id - 1
+        )
+    except Exception:
+        ...
+    images = await download_and_upload_images(message.bot, [message])
+    msg_to_del = await message.answer('✍️')
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
+    try:
+        answer = await solve_task(images)
+    except Exception as err:
+        answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    if not answer:
+        answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    await msg_to_del.delete()
+    await message.answer(answer, reply_markup=keyboard)
 
 
 @user_router.callback_query(F.data == 'photo_menu')

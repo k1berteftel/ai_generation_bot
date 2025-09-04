@@ -13,11 +13,31 @@ import config
 
 client = AsyncOpenAI(
     api_key=config.openai_api_token,
-    http_client=httpx.AsyncClient(proxy='http://eAzEJHXk:6WL4egih@46.232.31.88:62560')
+    http_client=httpx.AsyncClient(proxy='http://6L4YePzU:Mrnd5Tsy@212.193.143.10:63196')
 )
 
 
-async def get_assistant_and_thread(model: str = 'gpt-4.1-mini'):
+async def solve_task(images: list[str]):
+    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
+    response = await client.chat.completions.create(
+        model="gpt-5яяя",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Реши задачу и представь решение в понятном, читаемом формате без "
+                                             "использования LaTeX и боксов. Используй обычные математические "
+                                             "символы и объясняй шаги решения простым языком."},
+                    *images
+                ]
+            }
+        ],
+    )
+    print(response.choices[0].message.content)
+    return response.choices[0].message.content
+
+
+async def get_assistant_and_thread(model: str = 'gpt-4.1-mini', role: str | None = None):
     """
     :param model: модель чата гпт
     :return: Две str переменной по факту являющиеся уникальными для каждого юзера, чтобы обрабатывать их
@@ -25,12 +45,16 @@ async def get_assistant_and_thread(model: str = 'gpt-4.1-mini'):
     """
     assistant = await client.beta.assistants.create(
         model=model,
+        instructions=role,
         temperature=1.0,
         name="Яна"
     )
 
     thread = await client.beta.threads.create()
     return assistant.id, thread.id
+
+
+#print(asyncio.run(get_assistant_and_thread()))
 
 
 async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str | dict | None:

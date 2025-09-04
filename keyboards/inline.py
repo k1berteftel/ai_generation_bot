@@ -38,10 +38,10 @@ def get_account_keyboard(user_id: int) -> InlineKeyboardMarkup:
 def get_student_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text='Решальник задач (скоро)', callback_data='pass')],
+            [InlineKeyboardButton(text='Решальник задач', callback_data='solve_task')],
             [InlineKeyboardButton(text='Генерация презентаций (скоро)', callback_data='pass')],
             [InlineKeyboardButton(text='Создание рефератов (скоро)', callback_data='pass')],
-            [InlineKeyboardButton(text='Ответы на вопросы (скоро)', callback_data='pass')],
+            [InlineKeyboardButton(text='❓Ответы на вопросы', callback_data='student_dialog')],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_main")]
         ]
     )
@@ -60,10 +60,10 @@ def get_photo_menu() -> InlineKeyboardMarkup:
 def balance_rubles_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💎 99 кристалов — 99₽", callback_data="buy_rub_99")],
+        [InlineKeyboardButton(text="💎 150 кристалов — 150₽", callback_data="buy_rub_150")],
         [InlineKeyboardButton(text="💎 250 кристалов — 250₽", callback_data="buy_rub_250")],
         [InlineKeyboardButton(text="💎 400 кристалов — 400₽", callback_data="buy_rub_400")],
         [InlineKeyboardButton(text="💎 700 кристалов — 700₽", callback_data="buy_rub_700")],
-        [InlineKeyboardButton(text="💎 1500 кристалов — 1500₽", callback_data="buy_rub_1500")],
         [InlineKeyboardButton(text='⬅️ Назад', callback_data='balance')]
     ])
 
@@ -71,10 +71,10 @@ def balance_rubles_menu() -> InlineKeyboardMarkup:
 def balance_stars_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💎 99 кристалов — 76 ⭐️", callback_data="buy_stars_99")],
+        [InlineKeyboardButton(text="💎 150 кристалов — 115 ⭐️", callback_data="buy_stars_150")],
         [InlineKeyboardButton(text="💎 250 кристалов — 189 ⭐️", callback_data="buy_stars_250")],
         [InlineKeyboardButton(text="💎 400 кристалов — 299 ⭐️", callback_data="buy_stars_400")],
         [InlineKeyboardButton(text="💎 700 кристалов — 539 ⭐️", callback_data="buy_stars_700")],
-        [InlineKeyboardButton(text="💎 1500 кристалов — 1149 ⭐️", callback_data="buy_stars_1500")],
         [InlineKeyboardButton(text='⬅️ Назад', callback_data='balance')]
     ])
 
