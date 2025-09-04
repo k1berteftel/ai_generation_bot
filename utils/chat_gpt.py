@@ -20,7 +20,7 @@ client = AsyncOpenAI(
 async def solve_task(images: list[str]):
     images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
     response = await client.chat.completions.create(
-        model="gpt-5яяя",
+        model="gpt-5",
         messages=[
             {
                 "role": "user",

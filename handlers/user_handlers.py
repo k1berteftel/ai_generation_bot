@@ -532,6 +532,7 @@ async def process_task(message: types.Message, state: FSMContext):
     try:
         answer = await solve_task(images)
     except Exception as err:
+        print(err)
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
