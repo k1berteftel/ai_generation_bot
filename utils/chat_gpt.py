@@ -17,24 +17,28 @@ client = AsyncOpenAI(
 )
 
 
-async def solve_task(images: list[str]):
+async def solve_task(images: list[str], prompt: str | None = None):
     images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
+    system_prompt = ("Реши задачу и представь решение в понятном, читаемом формате без "
+                     "использования LaTeX и боксов. Используй обычные математические "
+                     "символы и простым языком, пошагово объясняй каждое свое "
+                     "действие в решении данной тебе задачи. Сами математические действия "
+                     "возвращай строго в формате <code>действие</code>")
+    prompt = system_prompt if not prompt else system_prompt + (f'\nВот пользовательский промпт к '
+                                                               f'решению задачи: "{prompt}"')
     response = await client.chat.completions.create(
         model="gpt-5",
         messages=[
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Реши задачу и представь решение в понятном, читаемом формате без "
-                                             "использования LaTeX и боксов. Используй обычные математические "
-                                             "символы и простым языком, пошагово объясняй каждое свое "
-                                             "действие в решении данной тебе задачи. Сами математические действия "
-                                             "возвращай строго в формате <code>действие</code>"},
+                    {"type": "text", "text": prompt},
                     *images
                 ]
             }
         ],
     )
+    print(response.usage.total_tokens, response.usage.prompt_tokens, response.usage.completion_tokens)
     print(response.choices[0].message.content)
     return response.choices[0].message.content
 
@@ -97,7 +101,7 @@ def find_image_links(text):
 
 
 async def generate_image(prompt: str, photos: list[str]) -> list[str] | None:
-    url = 'https://api.unifically.com/v1/chat/completions'
+    url = 'https://api.unifically.com/nano-banana/generate'
     #prompt = await translate_text(prompt)
     if not prompt:
         return None
@@ -105,28 +109,21 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | None:
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {config.unifically_api_token}'
     }
-    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in photos]
     data = {
-        "model": "gpt-4o-image-vip",
-        "messages": [
-            {
-                "role": "user",
-                'content': [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
-                    *images
-                ]
-            }
-        ],
-        "stream": True
+      "prompt": prompt,
     }
+    if photos:
+        data["image_urls"] = photos
     async with aiohttp.ClientSession() as client:
         async with client.post(url, headers=headers, json=data, ssl=False) as response:
-            content = str(await response.content.read())
-            links = find_image_links(content)
-            return links
+            print(response.status)
+            if response.status not in [200, 201]:
+                return
+            data = await response.json()
+            print(data)
+            if not data['success']:
+                return None
+    return [data['image_url']]
 
 
-#print(asyncio.run(generate_image('Сделай девушку азиаткой', [])))
+#print(asyncio.run(generate_image('Сделай девушку азиатку', [])))

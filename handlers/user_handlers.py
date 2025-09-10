@@ -352,27 +352,27 @@ async def cb_model_selected(callback: types.CallbackQuery, db: Database, state: 
     USER_MODELS[callback.from_user.id] = model
     await callback.message.delete()
     if model == 'Veo3 - видео сценарию':
-        text = ('🔹 Hailuo 02\n\nHailuo 02 — картинка суперчёткая, реалистичная, прям как в фильме.\n\n'
-                'Hailuo 02 Fast — версия «на скорость»: делает видео быстрее, но качество чуть ниже.\n\n'
-                '☝️Если нужен «вау-визуал» - бери Hailuo. Если важнее быстро и удобно — Fast.')
+        text = ('🔹 Veo 3\n\nVeo 3 — делает реально красивые, «кинематографичные» видео. Качество 🔝.\n\n'
+                'Veo 3 Fast — то же самое, но работает быстрее и дешевле, качество попроще (идеально для TikTok/Reels).'
+                '\n\n☝️Для серьёзного и «вау-эффекта» - Veo3. Для быстрых роликов в соцсети - Veo3 Fast.')
         await callback.message.answer(
             text=text,
             reply_markup=choose_veo_keyboard()
         )
         return
     if model == 'Seedance 1 — видео по тексту':
-        text = ('🔹 Veo 3\n\nVeo 3 — делает реально красивые, «кинематографичные» видео. Качество 🔝.\n\n'
-                'Veo 3 Fast — то же самое, но работает быстрее и дешевле, качество попроще (идеально для TikTok/Reels).'
-                '\n\n☝️Для серьёзного и «вау-эффекта» - Veo3. Для быстрых роликов в соцсети - Veo3 Fast.')
+        text = ('🔹 Seedance\n\nLite — это как «лайт-версия» приложения: самое простое, чтобы попробовать.\n\n'
+                'Pro — это как «премиум»: больше функций, настроек и возможностей для крутого результата.\n\n'
+                '☝️Если хочешь быстро и просто - бери Lite. Если любишь «по максимуму» - тогда Pro.')
         await callback.message.answer(
             text=text,
             reply_markup=choose_seedance_keyboard()
         )
         return
     if model == 'Haiuo v0.2 — видео текст+фото':
-        text = ('🔹 Seedance\n\nLite — это как «лайт-версия» приложения: самое простое, чтобы попробовать.\n\n'
-                'Pro — это как «премиум»: больше функций, настроек и возможностей для крутого результата.\n\n'
-                '☝️Если хочешь быстро и просто - бери Lite. Если любишь «по максимуму» - тогда Pro.')
+        text = ('🔹 Hailuo 02\n\nHailuo 02 — картинка суперчёткая, реалистичная, прям как в фильме.\n\n'
+                'Hailuo 02 Fast — версия «на скорость»: делает видео быстрее, но качество чуть ниже.\n\n'
+                '☝️Если нужен «вау-визуал» - бери Hailuo. Если важнее быстро и удобно — Fast.')
         await callback.message.answer(
             text=text,
             reply_markup=choose_hailuo_keyboard()
@@ -526,11 +526,12 @@ async def process_task(message: types.Message, state: FSMContext):
     except Exception:
         ...
     images = await download_and_upload_images(message.bot, [message])
+    prompt = message.caption
     msg_to_del = await message.answer('✍️')
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
     try:
-        answer = await solve_task(images)
+        answer = await solve_task(images, prompt)
     except Exception as err:
         print(err)
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'

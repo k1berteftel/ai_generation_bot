@@ -215,9 +215,10 @@ ASPECT_INPUTS = {"16:9": "16:9", "9:16": "9:16"}
 DEFAULT_GENERATIONS = 0
 
 IMAGE_GPT_COST = 40
-TEXT_GPT_COST = 5
+TEXT_GPT_COST = 11
 
 VEO_COST = {
     'Veo3 (Качественный)': 150,
     'Veo3 (Бюджетный)': 90
 }
+
