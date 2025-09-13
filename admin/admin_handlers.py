@@ -225,10 +225,10 @@ async def statistics_handler(message: types.Message, db: Database):
     await message.answer(report_text, parse_mode='HTML')
 
 
-async def _show_ad_urls_menu(message: types.Message, db: Database, is_edit: bool = False):
+async def _show_ad_urls_menu(message: types.Message, db: Database, page: int = 0, is_edit: bool = False):
     """Внутренняя функция для отображения меню рекламных ссылок."""
     ad_urls = await db.ad_url.get_all()
-    keyboard = ad_urls_panel_button(ad_urls)
+    keyboard = ad_urls_panel_button(ad_urls, page)
     if is_edit:
         await message.edit_text(texts.AD_URLS_MENU, reply_markup=keyboard)
     else:
@@ -270,15 +270,34 @@ async def _show_single_ad_url_stats(call: types.CallbackQuery, db: Database, nam
 
 
 @admin_router.message(F.text == 'Рекламные ссылки')
-async def ad_urls_handler(message: types.Message, db: Database):
+async def ad_urls_handler(message: types.Message, db: Database, state: FSMContext):
     ad_urls = await db.ad_url.get_all()
-    await message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls))
+    data = await state.get_data()
+    page = data.get('page', 0)
+    await message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls, page))
 
 
 @admin_router.callback_query(F.data == 'ad_urls_admin_panel')
-async def ad_urls_func_call(call: types.CallbackQuery, db: Database):
+async def ad_urls_func_call(call: types.CallbackQuery, db: Database, state: FSMContext):
+    await call.message.delete()
     ad_urls = await db.ad_url.get_all()
-    await call.message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls))
+    data = await state.get_data()
+    page = data.get('page', 0)
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls, page))
+
+
+@admin_router.callback_query(F.data.startswith('pager'))
+async def urls_pager(call: types.CallbackQuery, db: Database, state: FSMContext):
+    action = call.data.split('_')[-1]
+    data = await state.get_data()
+    page = data.get('page', 0)
+    if action == 'next':
+        page += 1
+    else:
+        page -= 1
+    await state.update_data(page=page)
+    ad_urls = await db.ad_url.get_all()
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=ad_urls_panel_button(ad_urls, page))
 
 
 @admin_router.message(F.text == 'Юзеры Бд')
@@ -298,10 +317,12 @@ async def create_ad_url_handler(call: types.CallbackQuery, state: FSMContext):
 @admin_router.message(NameUrl.name)
 async def set_ad_url_name_handler(message: types.Message, state: FSMContext, db: Database):
     await state.set_state()
+    data = await state.get_data()
+    page = data.get('page', 0)
     # Создаем запись через репозиторий
     await db.ad_url.get_or_create(message.text.replace(' ', '_'))
     await message.answer(texts.SUCCESSFULLY_ADDED)
-    await _show_ad_urls_menu(message, db)
+    await _show_ad_urls_menu(message, db, page)
 
 
 @admin_router.callback_query(F.data.startswith('ad_url:'))
@@ -315,6 +336,9 @@ async def ad_urls_action_handler(call: types.CallbackQuery, db: Database, state:
     except ValueError:
         return await call.answer("Ошибка данных.", show_alert=True)
 
+    data = await state.get_data()
+    page = data.get('page', 0)
+
     if action == 'view':
         await _show_single_ad_url_stats(call, db, name)
     elif action == 'update':
@@ -322,12 +346,12 @@ async def ad_urls_action_handler(call: types.CallbackQuery, db: Database, state:
     elif action == 'delete':
         await db.ad_url.delete_by_name(name)
         await call.answer(texts.SUCCESSFULLY_DELETED, show_alert=True)
-        await _show_ad_urls_menu(call.message, db, is_edit=True)
+        await _show_ad_urls_menu(call.message, db, page, is_edit=True)
     elif action == 'create':
         await call.message.edit_text(texts.PROMPT_FOR_AD_URL_NAME, reply_markup=cancel_urls_panel_button())
         await state.set_state(NameUrl.name)
     elif action == 'back':
-        await _show_ad_urls_menu(call.message, db, is_edit=True)
+        await _show_ad_urls_menu(call.message, db, page, is_edit=True)
 
 
 @admin_router.message(F.text == 'Логи')

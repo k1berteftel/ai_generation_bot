@@ -44,6 +44,7 @@ class AdUrl(Base):
     requests: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default='0')
 
     completed_op: Mapped[int] = mapped_column(Integer, server_default='0')
+    create: Mapped[datetime] = mapped_column(DateTime, default=func.now(), server_default=None, nullable=True)
 
     def __repr__(self):
         return f"<AdUrl(name='{self.name}')>"

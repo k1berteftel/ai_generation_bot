@@ -103,13 +103,20 @@ def cancel_key_panel_button():
     return keyboard
 
 
-def ad_urls_panel_button(ad_url_list: List[AdUrl]):
+def ad_urls_panel_button(ad_url_list: List[AdUrl], page: int = 0):
     buttons = []
     for ad_url in ad_url_list:
         buttons.append([InlineKeyboardButton(text=ad_url.name, callback_data=f'ad_url:view:{ad_url.name}')])
-    buttons.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_ad_url_panel')])
-    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-    return keyboard
+    buttons = [buttons[i:i + 10] for i in range(0, len(buttons), 10)]
+    pager_buttons = []
+    if page != 0:
+        pager_buttons.append(InlineKeyboardButton(text='◀️', callback_data='pager_back'))
+    if page != len(buttons) - 1:
+        pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='pager_next'))
+    keyboard = [buttons[page]]
+    keyboard.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_ad_url_panel')])
+    keyboard.append(pager_buttons)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def api_keys_panel_button():

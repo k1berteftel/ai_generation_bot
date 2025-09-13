@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, Any, List, Sequence, Type, Dict, Literal
 
-from sqlalchemy import select, update, delete, func, and_, text
+from sqlalchemy import select, update, delete, func, and_, text, desc
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -196,7 +196,7 @@ class AdUrlRepository:
     async def get_all(self) -> List[AdUrl]:
         """Возвращает все рекламные ссылки."""
         async with self.session_factory() as session:
-            stmt = select(AdUrl)
+            stmt = select(AdUrl).order_by(desc(AdUrl.create))
             result = await session.execute(stmt)
             return result.scalars().all()
 
