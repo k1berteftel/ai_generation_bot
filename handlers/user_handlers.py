@@ -513,11 +513,11 @@ async def switch_get_task(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(DialogStates.get_tasks)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
     await callback.message.delete()
-    await callback.message.answer('Отправьте фото задачи, которую вы хотите решить⬇️')
+    await callback.message.answer('Отправьте фото задачи, которую вы хотите решить⬇️', reply_markup=keyboard)
 
 
 @user_router.message(F.photo, DialogStates.get_tasks)
-async def process_task(message: types.Message, state: FSMContext):
+async def process_task(message: types.Message, db: Database, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
             chat_id=message.from_user.id,
@@ -538,6 +538,7 @@ async def process_task(message: types.Message, state: FSMContext):
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
     await msg_to_del.delete()
+    await db.statistic.increment_counters('Решение задач', all_time=1, now_month=1)
     await message.answer(answer, reply_markup=keyboard)
 
 

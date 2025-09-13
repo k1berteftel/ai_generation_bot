@@ -215,7 +215,8 @@ async def statistics_handler(message: types.Message, db: Database):
     await message.answer("⏳ Собираю статистику...")
 
     stat_names = [
-        'users', 'Kling v2.1 — видео текст+фото', 'Seedance 1 Lite — видео по тексту', 'Minimax - Видео по фото', 'Sora - Генерация изображений', 'Veo3 - видео сценарию', 'income'
+        'users', 'Kling v2.1 — видео текст+фото', 'Seedance 1 Lite — видео по тексту', 'Minimax - Видео по фото', 'Sora - Генерация изображений', 'Veo3 - видео сценарию', 'income',
+        'Решение задач'
     ]
     stats_data = await db.statistic.get_multiple_stats(stat_names)
     users = await db.user.get_users()

@@ -38,7 +38,6 @@ def format_statistics_report(stats_data: dict, users: list) -> str:
         )
         stats_blocks.append(block)
 
-
     final_report = texts.STATISTICS_REPORT_TEMPLATE.format(
         total_users=len(users),
         users_now_month=users_stats.get('now_month', 0),
