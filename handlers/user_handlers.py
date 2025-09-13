@@ -509,7 +509,17 @@ async def question_answer(message: types.Message, state: FSMContext):
 
 
 @user_router.callback_query(F.data == 'solve_task')
-async def switch_get_task(callback: types.CallbackQuery, state: FSMContext):
+async def switch_get_task(callback: types.CallbackQuery, db: Database, state: FSMContext):
+    user_id = callback.from_user.id
+    user = await db.user.get_user(user_id)
+    cost = 5
+    if user.generations < cost:
+        text = (f'⚡️Цена генерации: {cost}💎\nТвой баланс составляет: {user.generations} 💎\n\n'
+                f'🎁Получайте 10 💎 за каждого приглашённого пользователя\n💸 Зарабатывайте 10% от всех его пополнений'
+                f'\n\n<code>https://t.me/{config.BOT_NAME}?start={user_id}</code>\nИспользуйте реферальную систему '
+                f'и получайте вознаграждение за активность!\n\n👇Или пополняй баланс по кнопке ниже')
+        keyboard = balance_choose_menu()
+        return text, keyboard
     await state.set_state(DialogStates.get_tasks)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
     await callback.message.delete()
@@ -525,6 +535,15 @@ async def process_task(message: types.Message, db: Database, state: FSMContext):
         )
     except Exception:
         ...
+    user_id = message.from_user.id
+    cost = 5
+    status_message = "⏳ Принял. Загрузил фото и отправляю на обработку..."
+
+    if not await db.user.process_generation(user_id, cost):
+        await message.answer("У вас закончились генерации или произошла ошибка списания. Пополните баланс!",
+                             reply_markup=balance_choose_menu())
+        return
+    msg = await message.answer(f"{status_message} Это будет стоить {cost} 💎")
     images = await download_and_upload_images(message.bot, [message])
     prompt = message.caption
     msg_to_del = await message.answer('✍️')
