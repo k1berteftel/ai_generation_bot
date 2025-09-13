@@ -288,6 +288,7 @@ async def ad_urls_func_call(call: types.CallbackQuery, db: Database, state: FSMC
 
 @admin_router.callback_query(F.data.startswith('pager'))
 async def urls_pager(call: types.CallbackQuery, db: Database, state: FSMContext):
+    await call.message.delete()
     action = call.data.split('_')[-1]
     data = await state.get_data()
     page = data.get('page', 0)

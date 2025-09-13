@@ -113,6 +113,7 @@ def ad_urls_panel_button(ad_url_list: List[AdUrl], page: int = 0):
     pager_buttons = []
     if page != 0:
         pager_buttons.append(InlineKeyboardButton(text='◀️', callback_data='pager_back'))
+    pager_buttons.append(InlineKeyboardButton(text=f'{page+1}/{len(buttons)}'))
     if page != len(buttons) - 1:
         pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='pager_next'))
     keyboard = buttons[page]
