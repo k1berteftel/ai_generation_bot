@@ -94,7 +94,7 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
                 status = data["ok"]
                 if not status:
-                    channels.append([pare.chat_id, pare.link_channel])
+                    channels.append([pare.id, pare.link_channel])
 
             else:
 
