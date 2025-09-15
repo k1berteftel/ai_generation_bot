@@ -255,10 +255,7 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
             logging.info(f"User {user.id} is existing, ad_url: {url_name}. Updating non-unique stats.")
             await db.ad_url.increment_counters(name=url_name, all_users=1, not_unique_users=1)
 
-    try:
-        op_answer = await check_user_op(db, bot, message.from_user.id)
-    except Exception:
-        ...
+    op_answer = await check_user_op(db, bot, message.from_user.id)
     if op_answer is not None:
         await message.answer(
             '📢 Чтобы продолжить пользоваться ботом, подпишитесь на наши каналы!\n\n'

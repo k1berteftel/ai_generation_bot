@@ -98,7 +98,7 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
             else:
 
-                member = await bot.get_chat_member(pare.id, user_id)
+                member = await bot.get_chat_member(pare.chat_id, user_id)
                 if member.status == 'left':
                     channels.append([pare.id, pare.link_channel])
     if channels:
