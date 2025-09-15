@@ -6,6 +6,7 @@ import httpx
 import aiohttp
 
 from openai import AsyncOpenAI
+from openai.types.beta.threads.message_content_part_param import MessageContentPartParam
 
 from utils.helpers import upload_image_to_imgbb
 
@@ -63,7 +64,7 @@ async def get_assistant_and_thread(model: str = 'gpt-4.1-mini', role: str | None
 #print(asyncio.run(get_assistant_and_thread()))
 
 
-async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str | dict | None:
+async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images: list[str] = None) -> str | dict | None:
     """
         Обработка ИИшкой сообщения юзера, возвращает ответ ИИ
     """
@@ -71,7 +72,10 @@ async def get_text_answer(text: str, assistant_id: str, thread_id: str) -> str |
     message = await client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
-        content=text
+        content=MessageContentPartParam(
+            text=prompt,
+            image_url=images if images else None
+        )
     )
     print(message.__dict__)
     run = await client.beta.threads.runs.create_and_poll(

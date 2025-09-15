@@ -1017,7 +1017,7 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message(F.text)
+@user_router.message()
 async def answer_gpt(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
@@ -1034,8 +1034,9 @@ async def answer_gpt(message: types.Message, state: FSMContext):
         await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
-    prompt = message.text #if message.text else message.caption
-    answer = await get_text_answer(prompt, assistant_id, thread_id)
+    images = await download_and_upload_images(message.bot, [message])
+    prompt = message.text if message.text else message.caption
+    answer = await get_text_answer(prompt, assistant_id, thread_id, images)
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
     await msg_to_del.delete()
