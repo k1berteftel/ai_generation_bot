@@ -74,7 +74,8 @@ async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images
         role="user",
         content=MessageContentPartParam(
             text=prompt,
-            image_url=images if images else None
+            image_url=images if images else None,
+            type='image_url' if images else 'text'
         )
     )
     print(message.__dict__)
