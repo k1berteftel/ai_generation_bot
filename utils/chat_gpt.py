@@ -68,15 +68,15 @@ async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images
     """
         Обработка ИИшкой сообщения юзера, возвращает ответ ИИ
     """
+    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
     print(assistant_id, thread_id)
     message = await client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
-        content=MessageContentPartParam(
-            text=prompt,
-            image_url=images if images else None,
-            type='image_url' if images else 'text'
-        )
+        content=[
+                {"type": "text", "text": prompt},
+                *images
+            ]
     )
     print(message.__dict__)
     run = await client.beta.threads.runs.create_and_poll(
