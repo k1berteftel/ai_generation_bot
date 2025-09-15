@@ -31,7 +31,7 @@ from services.nexus_api import generate_on_nexus, generate_on_api
 from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
-    download_and_upload_images, check_user_op_single, upload_image_to_imgbb
+    download_and_upload_images, check_user_op_single, upload_image_to_imgbb, clear_context
 from utils.chat_gpt import get_text_answer, generate_image, get_assistant_and_thread, solve_task
 from APIKeyManager.apikeymanager import APIKeyManager
 
@@ -265,6 +265,9 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
         )
         await state.update_data(not_passed=[channel[0] for channel in op_answer])
         return
+    elif op_answer is None and is_new:
+        await db.user.increase_value(ref_id, 'generations', 10)
+        await db.user.increase_value(ref_id, 'ref_count', 1)
 
     user_id = message.from_user.id
     chosen_model = USER_MODELS.get(user_id)
@@ -419,45 +422,6 @@ async def start_veo_gen(callback: types.CallbackQuery, state: FSMContext, db: Da
             caption=text,
             reply_markup=keyboard
         )
-
-
-@user_router.callback_query(F.data == 'start_chat')
-async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
-    await state.set_state(DialogStates.waiting_for_prompt)
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
-    text = ('🤖 SUPER GPT активен!\n\nЯ готов ответить на любые вопросы и помочь с идеями'
-            '\nСпроси что-нибудь прямо сейчас!')
-    assistant_id, thread_id = await get_assistant_and_thread()
-    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
-    await callback.message.delete()
-    await callback.message.answer_photo(
-        photo=FSInputFile(path='medias/start_gpt.jpg'),
-        caption=text,
-        reply_markup=keyboard,
-        parse_mode='HTML'
-    )
-
-
-@user_router.message(DialogStates.waiting_for_prompt)
-async def answer_gpt(message: types.Message, state: FSMContext):
-    try:
-        await message.bot.edit_message_reply_markup(
-            chat_id=message.from_user.id,
-            message_id=message.message_id - 1
-        )
-    except Exception:
-        ...
-    msg_to_del = await message.answer('✍️')
-    state_data = await state.get_data()
-    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
-    prompt = message.text if message.text else message.caption
-    answer = await get_text_answer(prompt, assistant_id, thread_id)
-    if not answer:
-        answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
-    await msg_to_del.delete()
-    await message.answer(answer, reply_markup=keyboard)
 
 
 @user_router.callback_query(F.data == 'for_students')
@@ -1006,6 +970,7 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
     if answer is None:
         data = await state.get_data()
         ref_id = data.get('ref_id')
+        print(ref_id)
         if ref_id:
             await db.user.increase_value(ref_id, 'generations', 10)
             await db.user.increase_value(ref_id, 'ref_count', 1)
@@ -1014,5 +979,71 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
         for op_id in op_ids:
             await db.subscription.increment_subs_count(op_id)
         await call.message.edit_text('Вы можете пользоваться ботом! ✅')
+        markup = get_main_menu_keyboard()
+        user = await db.user.get_user(call.from_user.id)
+        if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+            free_generation = '🎁Вам доступна одна бесплатная генерация'
+        else:
+            next_generation = user.last_generation + datetime.timedelta(days=1)
+            free_generation = f'Следующая бесплатная генерация будет доступна <em>{next_generation.strftime("%Y-%m-%d %H:%M")}</em>🕜'
+        text = (
+            "<b>👋 Добро пожаловать в Super GPT!</b>\n\n"
+            "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей!\n\n"
+            f"Ваш баланс: <b>{user.generations}</b> 💎\n"
+            f'{free_generation}\n\n'
+            f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
+        )
+        await call.message.answer_video(
+            video=FSInputFile(path='medias/menu_video.MP4'),
+            caption=text, reply_markup=markup, parse_mode='HTML')
     else:
         await call.answer('Вы не подписались на каналы!', show_alert=True)
+
+
+@user_router.callback_query(F.data == 'start_chat')
+async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(DialogStates.waiting_for_prompt)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
+    text = ('🤖 SUPER GPT активен!\n\nЯ готов ответить на любые вопросы и помочь с идеями'
+            '\nСпроси что-нибудь прямо сейчас!')
+    assistant_id, thread_id = await get_assistant_and_thread()
+    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=FSInputFile(path='medias/start_gpt.jpg'),
+        caption=text,
+        reply_markup=keyboard,
+        parse_mode='HTML'
+    )
+
+
+@user_router.message(F.text)
+async def answer_gpt(message: types.Message, state: FSMContext):
+    try:
+        await message.bot.edit_message_reply_markup(
+            chat_id=message.from_user.id,
+            message_id=message.message_id - 1
+        )
+    except Exception:
+        ...
+    msg_to_del = await message.answer('✍️')
+    state_data = await state.get_data()
+    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
+    if not assistant_id or thread_id:
+        assistant_id, thread_id = await get_assistant_and_thread()
+        await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
+    prompt = message.text #if message.text else message.caption
+    answer = await get_text_answer(prompt, assistant_id, thread_id)
+    if not answer:
+        answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    await msg_to_del.delete()
+    await message.answer(answer, reply_markup=keyboard)
+    task_name = f'{message.from_user.id}_context'
+    for task in asyncio.all_tasks():
+        if task.get_name() == task_name:
+            task.cancel()
+    task = asyncio.create_task(clear_context(state, 60*25))
+    task.set_name(task_name)
+

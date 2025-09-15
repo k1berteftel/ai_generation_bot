@@ -1,4 +1,5 @@
 # utils/helpers.py
+import asyncio
 import base64
 import mimetypes
 import logging
@@ -7,6 +8,7 @@ import os
 import aiohttp
 import requests
 from aiogram import Bot, types
+from aiogram.fsm.context import FSMContext
 
 import config
 from data.constants import DURATION_PRICES
@@ -73,6 +75,7 @@ async def check_user_op_single(bot: Bot, target_chat_id: str, user_id: int) -> b
 
     return True
 
+
 async def check_user_op(db, bot: Bot, user_id: int):
     all_op = await db.subscription.get_all_channels()
     if not all_op:
@@ -91,13 +94,13 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
                 status = data["ok"]
                 if not status:
-                    channels.append([pare.id, pare.link_channel])
+                    channels.append([pare.chat_id, pare.link_channel])
 
             else:
 
                 member = await bot.get_chat_member(pare.chat_id, user_id)
                 if member.status == 'left':
-                    channels.append([pare.id, pare.link_channel])
+                    channels.append([pare.chat_id, pare.link_channel])
     if channels:
         return channels
 
@@ -173,3 +176,8 @@ async def download_and_upload_images(
 
     # Если в итоге ни одной картинки не загрузилось, вернется пустой список
     return urls
+
+
+async def clear_context(state: FSMContext, period: int):
+    await asyncio.sleep(period)
+    await state.update_data(assistant_id=None, thread_id=None)
