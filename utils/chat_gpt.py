@@ -74,7 +74,7 @@ async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images
         thread_id=thread_id,
         role="user",
         content=[
-                {"type": "text", "text": prompt},
+                {"type": "text", "text": prompt} if prompt else None,
                 *images
             ]
     )
@@ -105,7 +105,7 @@ def find_image_links(text):
     return matches
 
 
-async def generate_image(prompt: str, photos: list[str]) -> list[str] | None:
+async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
     url = 'https://api.unifically.com/nano-banana/generate'
     #prompt = await translate_text(prompt)
     if not prompt:
@@ -123,11 +123,12 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | None:
         async with client.post(url, headers=headers, json=data, ssl=False) as response:
             print(response.status)
             if response.status not in [200, 201]:
-                return
+                data = await response.json()
+                return {'error': data['error']['message']}
             data = await response.json()
             print(data)
             if not data['success']:
-                return None
+                return {}
     return [data['image_url']]
 
 

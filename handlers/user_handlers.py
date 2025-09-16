@@ -888,6 +888,8 @@ async def handle_prompt(
             result_urls = await generate_on_api(params)
 
         if not result_urls:
+            if isinstance(result_urls, dict):
+                raise RuntimeError(result_urls.get('error'))
             raise RuntimeError("API не вернул результат.")
 
         await msg.delete()
@@ -1017,7 +1019,7 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message()
+@user_router.message(F.text)
 async def answer_gpt(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
