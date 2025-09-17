@@ -70,19 +70,23 @@ async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images
     """
     images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
     print(assistant_id, thread_id)
+    content = []
+    if prompt:
+        content.append({"type": "text", "text": prompt})
+    if images:
+        content.extend(images)
     message = await client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
-        content=[
-                {"type": "text", "text": prompt} if prompt else None,
-                *images
-            ]
+        content=content
     )
     print(message.__dict__)
     run = await client.beta.threads.runs.create_and_poll(
         thread_id=thread_id,
         assistant_id=assistant_id
     )
+    print(run.status)
+    print(run.last_error)
     info = (f'Стоимость запроса: {run.usage.completion_tokens}\nСтоимость промпта: {run.usage.prompt_tokens}'
             f'\nОбщая стоимость: {run.usage.total_tokens}')
     print(info)

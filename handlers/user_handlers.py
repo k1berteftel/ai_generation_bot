@@ -1019,7 +1019,7 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message(F.text)
+@user_router.message()
 async def answer_gpt(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
@@ -1031,7 +1031,7 @@ async def answer_gpt(message: types.Message, state: FSMContext):
     msg_to_del = await message.answer('✍️')
     state_data = await state.get_data()
     assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
-    if not assistant_id or thread_id:
+    if not assistant_id or not thread_id:
         assistant_id, thread_id = await get_assistant_and_thread()
         await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     keyboard = InlineKeyboardMarkup(
