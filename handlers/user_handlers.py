@@ -12,7 +12,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton, Message, InputMediaPhoto, \
-    LabeledPrice, SuccessfulPayment, PreCheckoutQuery
+    LabeledPrice, SuccessfulPayment, PreCheckoutQuery, URLInputFile
 from yookassa import Payment
 
 # Импорты из вашего проекта
@@ -887,18 +887,17 @@ async def handle_prompt(
             #result_urls = await generate_on_nexus(params)
             result_urls = await generate_on_api(params)
 
-        if not result_urls:
-            if isinstance(result_urls, dict):
-                raise RuntimeError(result_urls.get('error'))
-            raise RuntimeError("API не вернул результат.")
-
         await msg.delete()
         safe_prompt = html.escape(params["prompt"])
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text='⬅️ На главное меню', callback_data='back_main')]])
         if model_key == 'Sora - Генерация изображений':
-            media_group = [InputMediaPhoto(media=url) for url in result_urls]
+            if not result_urls:
+                if isinstance(result_urls, dict):
+                    raise RuntimeError(result_urls.get('error'))
+                raise RuntimeError("API не вернул результат.")
+            media_group = [InputMediaPhoto(media=URLInputFile(url=url)) for url in result_urls]
             if media_group:
                 media_group[0].caption = (f"🖼️ <b>Готово!</b>\n<b>Промпт:</b> <code>{safe_prompt}</code>\n\n"
                                           f"<a href='https://t.me/ai_generation_robot'>Бот для генерации</a>")
