@@ -129,7 +129,7 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
                 return {'error': data['data']['error']['message']}
             data = await response.json()
             print(data)
-            if not data['data']['status'] != 'completed':
+            if data['data']['status'] != 'completed':
                 return {'error': data['data']['error']['message']}
     return [data['data']['output']['image_url']]
 
