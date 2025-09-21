@@ -1019,7 +1019,7 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message()
+@user_router.message(F.text)
 async def answer_gpt(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
