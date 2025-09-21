@@ -126,12 +126,12 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
             print(response.status)
             if response.status not in [200, 201]:
                 data = await response.json()
-                return {'error': data['error']['message']}
+                return {'error': data['data']['error']['message']}
             data = await response.json()
             print(data)
-            if not data['success']:
-                return {}
-    return [data['image_url']]
+            if not data['data']['status'] != 'completed':
+                return {'error': data['data']['error']['message']}
+    return [data['data']['output']['image_url']]
 
 
 #print(asyncio.run(generate_image('Сделай девушку азиатку', [])))
