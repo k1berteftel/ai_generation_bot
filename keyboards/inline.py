@@ -69,11 +69,11 @@ def balance_rubles_menu() -> InlineKeyboardMarkup:
 
 def balance_stars_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💎 99 кристалов — 76 ⭐️", callback_data="buy_stars_99")],
-        [InlineKeyboardButton(text="💎 150 кристалов — 115 ⭐️", callback_data="buy_stars_150")],
-        [InlineKeyboardButton(text="💎 250 кристалов — 189 ⭐️", callback_data="buy_stars_250")],
-        [InlineKeyboardButton(text="💎 400 кристалов — 299 ⭐️", callback_data="buy_stars_400")],
-        [InlineKeyboardButton(text="💎 700 кристалов — 539 ⭐️", callback_data="buy_stars_700")],
+        [InlineKeyboardButton(text="💎 99 кристалов — 95 ⭐️", callback_data="buy_stars_99")],
+        [InlineKeyboardButton(text="💎 150 кристалов — 142 ⭐️", callback_data="buy_stars_150")],
+        [InlineKeyboardButton(text="💎 250 кристалов — 237 ⭐️", callback_data="buy_stars_250")],
+        [InlineKeyboardButton(text="💎 400 кристалов — 380 ⭐️", callback_data="buy_stars_400")],
+        [InlineKeyboardButton(text="💎 700 кристалов — 665 ⭐️", callback_data="buy_stars_700")],
         [InlineKeyboardButton(text='⬅️ Назад', callback_data='balance')]
     ])
 

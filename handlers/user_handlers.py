@@ -12,7 +12,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton, Message, InputMediaPhoto, \
-    LabeledPrice, SuccessfulPayment, PreCheckoutQuery, URLInputFile
+    LabeledPrice, SuccessfulPayment, PreCheckoutQuery, URLInputFile, User
 from yookassa import Payment
 
 # Импорты из вашего проекта
@@ -36,6 +36,18 @@ from utils.chat_gpt import get_text_answer, generate_image, get_assistant_and_th
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
+
+
+async def _remind_func(user_id: int, text: str, keyboard: InlineKeyboardMarkup, days: int, bot: Bot):
+    await asyncio.sleep(60*60*24*days)
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=text,
+            reply_markup=keyboard
+        )
+    except Exception:
+        ...
 
 
 class AlbumMiddleware(BaseMiddleware):
@@ -65,7 +77,41 @@ class AlbumMiddleware(BaseMiddleware):
         return
 
 
+class RemindMiddleware(BaseMiddleware):
+    async def __call__(
+            self,
+            handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
+            event: Message,
+            data: dict[str, Any],
+    ) -> Any:
+        event_from_user: User = data.get('event_from_user')
+        bot: Bot = data.get('bot')
+        task_name_1 = f'{event_from_user.id}_2_remind'
+        task_name_2 = f'{event_from_user.id}_7_remind'
+
+        for task in asyncio.all_tasks():
+            if task.get_name() in [task_name_1, task_name_2]:
+                task.cancel()
+        keyboard_1 = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]]
+        )
+        text_1 = ('👋🏻 Привет! Давно не общались, а ведь я могу снова помочь тебе:\n\n• Сделать генерацию из трендов '
+                  '\n• Ответить на любой вопрос \n• Решить задачу')
+        task_1 = asyncio.create_task(_remind_func(event_from_user.id, text_1, keyboard_1, 2, bot))
+        task_1.set_name(task_name_1)
+
+        text_2 = ('Ты забыл обо мне? 😢\n\nА я тут готов помочь хоть сейчас — сделать генерацию из тренда или '
+                  'решить любую задачу \n\nДавай попробуем еще раз🙌🏻')
+        keyboard_2 = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text='Забрать 10 💎', callback_data='get_free_crystals')]]
+        )
+        task_2 = asyncio.create_task(_remind_func(event_from_user.id, text_2, keyboard_2, 7, bot))
+        task_2.set_name(task_name_2)
+
+
 user_router.message.middleware(AlbumMiddleware())
+user_router.callback_query.middleware(RemindMiddleware())
+user_router.message.middleware(RemindMiddleware())
 
 
 class GenStates(StatesGroup):
@@ -976,10 +1022,18 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
         if ref_id:
             await db.user.increase_value(ref_id, 'generations', 10)
             await db.user.increase_value(ref_id, 'ref_count', 1)
+            try:
+                await call.bot.send_message(
+                    chat_id=ref_id,
+                    text='<b>Вы пригласили реферала, вам начислили 10💎</b>'
+                )
+            except Exception:
+                ...
         await db.user.update_user(call.from_user.id, passed=True)
         op_ids = data.get('not_passed')
-        for op_id in op_ids:
-            await db.subscription.increment_subs_count(op_id)
+        if op_ids:
+            for op_id in op_ids:
+                await db.subscription.increment_subs_count(op_id)
         await call.message.edit_text('Вы можете пользоваться ботом! ✅')
         markup = get_main_menu_keyboard()
         user = await db.user.get_user(call.from_user.id)
@@ -1000,6 +1054,30 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
             caption=text, reply_markup=markup, parse_mode='HTML')
     else:
         await call.answer('Вы не подписались на каналы!', show_alert=True)
+
+
+@user_router.callback_query(F.data == 'get_free_crystals')
+async def increase_free_value(callback: types.CallbackQuery, db: Database):
+    user_id = callback.from_user.id
+    await db.user.increase_value(user_id, 'generations', 10)
+    await callback.message.answer('+ 10💎')
+    markup = get_main_menu_keyboard()
+    user = await db.user.get_user(callback.from_user.id)
+    if not user.last_generation or (user.last_generation.day != datetime.datetime.now().day):
+        free_generation = '🎁Вам доступна одна бесплатная генерация'
+    else:
+        next_generation = user.last_generation + datetime.timedelta(days=1)
+        free_generation = f'Следующая бесплатная генерация будет доступна <em>{next_generation.strftime("%Y-%m-%d %H:%M")}</em>🕜'
+    text = (
+        "<b>👋 Добро пожаловать в Super GPT!</b>\n\n"
+        "🤖 Здесь вы можете создавать уникальные тексты, генерировать изображения и видео с помощью нейросетей!\n\n"
+        f"Ваш баланс: <b>{user.generations}</b> 💎\n"
+        f'{free_generation}\n\n'
+        f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
+    )
+    await callback.message.answer_video(
+        video=FSInputFile(path='medias/menu_video.MP4'),
+        caption=text, reply_markup=markup, parse_mode='HTML')
 
 
 @user_router.callback_query(F.data == 'start_chat')
