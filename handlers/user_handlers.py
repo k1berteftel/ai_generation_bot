@@ -107,6 +107,7 @@ class RemindMiddleware(BaseMiddleware):
         )
         task_2 = asyncio.create_task(_remind_func(event_from_user.id, text_2, keyboard_2, 7, bot))
         task_2.set_name(task_name_2)
+        return await handler(event, data)
 
 
 user_router.message.middleware(AlbumMiddleware())
