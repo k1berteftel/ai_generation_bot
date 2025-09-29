@@ -110,7 +110,7 @@ def find_image_links(text):
 
 
 async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
-    url = f'https://api.unifically.com/nano-banana/{"generate" if not photos else "edit"}'
+    url = f'https://api.unifically.com/nano-banana/generate'
     #prompt = await translate_text(prompt)
     headers = {
         'Content-Type': 'application/json',
