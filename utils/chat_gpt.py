@@ -116,15 +116,18 @@ async def _polling_image_generate(data: dict) -> list[str] | dict:
         'Authorization': f'Bearer {config.unifically_api_token}'
     }
     async with aiohttp.ClientSession() as client:
-        while data['data']['status'] != 'completed':
-            async with client.post(url, headers=headers, json=data, ssl=False) as response:
+        while True:
+            async with client.get(url, headers=headers, ssl=False) as response:
                 if response.status not in [200, 201]:
                     data = await response.json()
                     return {'error': data['data']['error']['message']}
                 data = await response.json()
-            if data['data']['status'] != 'failed':
+                print(data)
+            if data['data']['status'] == 'failed':
                 return {'error': data['data']['error']['message']}
-        return [data['data']['output']['image_url']]
+            if data['data']['status'] == 'completed':
+                return [data['data']['output']['image_url']]
+            await asyncio.sleep(4)
 
 
 async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
@@ -146,11 +149,12 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
                 data = await response.json()
                 return {'error': data['data']['error']['message']}
             data = await response.json()
-        if data['data']['status'] != 'failed':
+            print(data)
+        if data['code'] != 200:
             return {'error': data['data']['error']['message']}
-        if data['data']['status'] == 'processing':
-            return await _polling_image_generate(data)
-    return [data['data']['output']['image_url']]
+        if data['data'].get('output'):
+            return [data['data']['output']['image_url']]
+    return await _polling_image_generate(data)
 
 
 #print(asyncio.run(generate_image('Сделай девушку азиатку', [])))
