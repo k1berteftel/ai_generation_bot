@@ -109,6 +109,24 @@ def find_image_links(text):
     return matches
 
 
+async def _polling_image_generate(data: dict) -> list[str] | dict:
+    url = f'https://api.unifically.com/nano-banana/status/{data["data"]["task_id"]}'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {config.unifically_api_token}'
+    }
+    async with aiohttp.ClientSession() as client:
+        while data['data']['status'] != 'completed':
+            async with client.post(url, headers=headers, json=data, ssl=False) as response:
+                if response.status not in [200, 201]:
+                    data = await response.json()
+                    return {'error': data['data']['error']['message']}
+                data = await response.json()
+            if data['data']['status'] != 'failed':
+                return {'error': data['data']['error']['message']}
+        return [data['data']['output']['image_url']]
+
+
 async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
     url = f'https://api.unifically.com/nano-banana/generate'
     #prompt = await translate_text(prompt)
@@ -128,9 +146,10 @@ async def generate_image(prompt: str, photos: list[str]) -> list[str] | dict:
                 data = await response.json()
                 return {'error': data['data']['error']['message']}
             data = await response.json()
-            print(data)
-            if data['data']['status'] != 'completed':
-                return {'error': data['data']['error']['message']}
+        if data['data']['status'] != 'failed':
+            return {'error': data['data']['error']['message']}
+        if data['data']['status'] == 'processing':
+            return await _polling_image_generate(data)
     return [data['data']['output']['image_url']]
 
 

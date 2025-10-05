@@ -4,6 +4,7 @@ import base64
 import mimetypes
 import logging
 import os
+from pathlib import Path
 
 import aiohttp
 import requests
@@ -108,33 +109,28 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
 
 async def upload_image_to_imgbb(image_path: str) -> str | None:
-    """Загружает локальный файл на ImgBB и возвращает URL."""
-    if not config.IMGBB_API_KEY:
-        logging.error("Ключ API для ImgBB не найден в конфигурации.")
-        return None
+    url = 'https://files.storagecdn.online/upload'
 
-    with open(image_path, 'rb') as image_file:
-        encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+    data = aiohttp.FormData()
+    data.add_field('file',
+                   open(image_path, 'rb'),
+                   filename=Path(image_path).name,
+                   content_type='application/octet-stream')
 
-    data = {
-        'key': config.IMGBB_API_KEY,
-        'image': encoded_image,
+    headers = {
+        'Authorization': f'Bearer {config.unifically_api_token}'
     }
 
     async with aiohttp.ClientSession() as session:
-        async with session.post("https://api.imgbb.com/1/upload", data=data, ssl=False) as response:
-            if response.status == 200:
-                response_data = await response.json()
-                image_url = response_data['data']['url']
-                logging.info(f"Изображение успешно загружено на ImgBB: {image_url}")
-                return image_url
-            else:
-                try:
-                    response_data = await response.json()
-                    logging.error(f"Ошибка загрузки на ImgBB: {response_data}")
-                except aiohttp.ContentTypeError:
-                    logging.error(f"Ошибка загрузки на ImgBB: {response.status} {await response.text()}")
+        async with session.put(url, data=data, headers=headers) as response:
+            if response.status not in [200, 201]:
+                print(await response.text())
                 return None
+            data = await response.json()
+            if data['success'] != True:
+                print(data['message'])
+                return None
+    return data['file_url']
 
 
 async def download_and_upload_images(
