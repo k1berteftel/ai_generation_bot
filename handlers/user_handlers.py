@@ -336,8 +336,13 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
             f'{free_generation}\n\n'
             f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
         )
+        """
         await message.answer_video(
             video=FSInputFile(path='medias/menu_video.MP4'),
+            caption=text, reply_markup=markup, parse_mode='HTML')
+        """
+        await message.answer_photo(
+            photo=FSInputFile(path='medias/menu_photo.jpg'),
             caption=text, reply_markup=markup, parse_mode='HTML')
     else:
         text = ('<b>👋 Добро пожаловать в SUPER GPT!</b>\n<b>Ты попал в мир нейросетей нового поколения!</b>'
@@ -383,8 +388,13 @@ async def cb_back_main(callback: types.CallbackQuery, db: Database, state: FSMCo
     markup = get_main_menu_keyboard()
     try:
         await callback.message.delete()
+        """
         await callback.message.answer_video(
             video=FSInputFile(path='medias/menu_video.MP4'), caption=text, reply_markup=markup)
+        """
+        await callback.message.answer_photo(
+            photo=FSInputFile(path='medias/menu_photo.jpg'),
+            caption=text, reply_markup=markup, parse_mode='HTML')
     except Exception:
         await callback.answer()
 
@@ -1076,8 +1086,13 @@ async def increase_free_value(callback: types.CallbackQuery, db: Database):
         f'{free_generation}\n\n'
         f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
     )
+    """
     await callback.message.answer_video(
         video=FSInputFile(path='medias/menu_video.MP4'),
+        caption=text, reply_markup=markup, parse_mode='HTML')
+    """
+    await callback.message.answer_photo(
+        photo=FSInputFile(path='medias/menu_photo.jpg'),
         caption=text, reply_markup=markup, parse_mode='HTML')
 
 
