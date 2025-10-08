@@ -1060,8 +1060,13 @@ async def check_op_user_func(call: types.CallbackQuery, db: Database, state: FSM
             f'{free_generation}\n\n'
             f"<b>📌 Совет:</b> Закрепляй бота и используй промты, которые мы оставили в каждой генеративной модели."
         )
+        """
         await call.message.answer_video(
             video=FSInputFile(path='medias/menu_video.MP4'),
+            caption=text, reply_markup=markup, parse_mode='HTML')
+        """
+        await call.message.answer_photo(
+            photo=FSInputFile(path='medias/menu_photo.jpg'),
             caption=text, reply_markup=markup, parse_mode='HTML')
     else:
         await call.answer('Вы не подписались на каналы!', show_alert=True)
