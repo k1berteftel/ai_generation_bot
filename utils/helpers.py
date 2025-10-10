@@ -4,15 +4,28 @@ import base64
 import mimetypes
 import logging
 import os
+import string
+import random
 from pathlib import Path
 
+import aiofiles
 import aiohttp
 import requests
+
+
 from aiogram import Bot, types
 from aiogram.fsm.context import FSMContext
 
 import config
 from data.constants import DURATION_PRICES
+
+
+def _get_random_id() -> str:
+    string.ascii_letter = 'abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    simvols = ''
+    for i in range(0, 8):
+        simvols += str(random.choice(string.ascii_letters))
+    return simvols
 
 
 def calculate_generation_cost(model: str, duration: str, pixverse_mode: str = None,
@@ -51,6 +64,7 @@ def _image_to_data_uri(file_path: str) -> str:
     with open(file_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
     return f"data:{mime_type};base64,{encoded_string}"
+
 
 async def check_user_op_single(bot: Bot, target_chat_id: str, user_id: int) -> bool:
     async with aiohttp.ClientSession() as session:
@@ -122,7 +136,7 @@ async def upload_image_to_imgbb(image_path: str) -> str | None:
     }
 
     async with aiohttp.ClientSession() as session:
-        async with session.put(url, data=data, headers=headers) as response:
+        async with session.put(url, data=data, headers=headers, ssl=False) as response:
             if response.status not in [200, 201]:
                 print(await response.text())
                 return None
@@ -133,9 +147,41 @@ async def upload_image_to_imgbb(image_path: str) -> str | None:
     return data['file_url']
 
 
+async def save_image(data: dict) -> str:
+    """
+    Сохраняет base64 изображение в файл
+    :param data: словарь с данными изображения
+    """
+    try:
+        filename = _get_random_id()
+        base64_data = data.get("data", "")
+        mime_type = data.get("mime_type", "image/png")
+
+        if not base64_data:
+            raise ValueError("Нет данных изображения")
+
+        image_bytes = base64.b64decode(base64_data)
+
+        extension = mime_type.split('/')[-1]
+        if extension == "jpeg":
+            extension = "jpg"
+
+        if not filename.endswith(f".{extension}"):
+            filename = f"download/{Path(filename).stem}.{extension}"
+
+        async with aiofiles.open(filename, 'wb') as file:
+            await file.write(image_bytes)
+
+        return filename
+
+    except Exception as e:
+        print(f"❌ Ошибка при сохранении изображения: {e}")
+        raise e
+
+
 async def download_and_upload_images(
         bot: Bot,
-        album: list[types.Message]
+        album: list[types.PhotoSize]
 ) -> list[str]:
     """
     Скачивает фото из Telegram, загружает их на ImgBB и возвращает список URL.
@@ -149,12 +195,12 @@ async def download_and_upload_images(
     if len(messages_to_process) > 10:
         raise ValueError("Можно отправить не более 10 фотографий в одном запросе.")
 
-    for msg in messages_to_process:
+    for photo in messages_to_process:
         # Пропускаем сообщения без фото (например, если в альбоме был текст)
-        if not msg.photo:
+        if not photo:
             continue
 
-        photo_obj = msg.photo[-1]
+        photo_obj = photo
         temp_photo_path = f"temp_{photo_obj.file_unique_id}.jpg"
 
         try:
@@ -172,6 +218,21 @@ async def download_and_upload_images(
 
     # Если в итоге ни одной картинки не загрузилось, вернется пустой список
     return urls
+
+
+async def save_bot_files(photos: list[types.PhotoSize], bot: Bot):
+    if not os.path.exists('download'):
+        os.mkdir('download')
+    files = []
+    for photo in photos:
+        temp_photo_path = f"download/temp_{photo.file_unique_id}.jpg"
+        try:
+            await bot.download(file=photo.file_id, destination=temp_photo_path)
+
+            files.append(temp_photo_path)
+        except Exception as err:
+            logging.warning(f"Не удалось загрузить на ImgBB файл: {temp_photo_path}\n{err}")
+    return files
 
 
 async def clear_context(state: FSMContext, period: int):
