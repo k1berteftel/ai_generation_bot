@@ -41,7 +41,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'нейронка, ахаха (смеётся). Бабушка прыгает вверх и улетает.</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/veo3_2025'
+        'manual': 'https://t.me/pakrnet'
     },
     "Kling v2.1 — видео текст+фото": {
         'name': '<b>kling-v2.1-master</b>',
@@ -64,7 +64,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'shaky, casually composed, and emotionally genuine</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/kling_promt2025'
+        'manual': 'https://t.me/pakrnet'
     },
     "Seedance 1 — видео по тексту": {
         'name': "<b>seedance-1-lite</b>",
@@ -77,7 +77,7 @@ MODELS_EXAMPLE_OBJECT = {
                 'prompt': '<blockquote expandable><b>Оживи фотографию</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/seedance25'
+        'manual': 'https://t.me/pakrnet'
     },
     "Minimax - Видео по фото": {
         'name': '<b>minimax-video-01</b>',
@@ -90,7 +90,7 @@ MODELS_EXAMPLE_OBJECT = {
                 'prompt': '<blockquote><b>Черный кот переходит дорогу</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/minimax2025'
+        'manual': 'https://t.me/pakrnet'
     },
     'Haiuo v0.2 — видео текст+фото': {
         'name': '<b>haulio-02</b>',
@@ -113,7 +113,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'shaky, casually composed, and emotionally genuine</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/minimax2025'
+        'manual': 'https://t.me/pakrnet'
     },
     'Sora - Генерация изображений': {
         'name': '<b>gpt-4o-image</b>',
@@ -130,7 +130,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'свет.</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/sora_2026'
+        'manual': 'https://t.me/pakrnet'
     },
     'Sora - Генерация изображений|text': {
         'name': '<b>gpt-4o-image</b>',
@@ -144,7 +144,7 @@ MODELS_EXAMPLE_OBJECT = {
                           'управляются мыслями</b></blockquote>'
             },
         ],
-        'manual': 'https://t.me/generation_text'
+        'manual': 'https://t.me/pakrnet'
     }
 }
 
