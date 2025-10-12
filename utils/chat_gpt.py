@@ -10,7 +10,7 @@ import aiohttp
 
 from openai import AsyncOpenAI
 from aiogram import Bot
-from aiogram.types import PhotoSize
+from aiogram.types import Message
 
 from utils.helpers import upload_image_to_imgbb, save_image, download_and_upload_images, save_bot_files
 
@@ -139,20 +139,22 @@ async def _polling_unifically_generate(data: dict) -> list[str] | dict:
 counter = 1
 
 
-async def generate_division(prompt: str, bot: Bot, photos: list[PhotoSize] = None):
+async def generate_division(prompt: str, bot: Bot, photos: list[Message]):
     global counter
     images = []
-    if counter % 2 == 0:
+    #if counter % 2 == 0:
+    if photos:
+        images = await download_and_upload_images(bot, photos)
+    result = await generate_image_by_unifically(prompt, images)
+    if isinstance(result, dict):
         if photos:
-            images = await download_and_upload_images(bot, photos)
-        result = await generate_image_by_unifically(prompt, images)
-        if isinstance(result, dict):
-            if photos:
-                images = await save_bot_files(photos, bot)
-            result = await generate_image_by_veo(prompt, images)
-            for image in images:
-                if os.path.exists(image):
-                    os.remove(image)
+            images = await save_bot_files(photos, bot)
+        result = await generate_image_by_veo(prompt, images)
+        for image in images:
+            if os.path.exists(image):
+                os.remove(image)
+    return result
+"""
     else:
         if photos:
             images = await save_bot_files(photos, bot)
@@ -166,6 +168,7 @@ async def generate_division(prompt: str, bot: Bot, photos: list[PhotoSize] = Non
             result = await generate_image_by_unifically(prompt, images)
     counter += 1
     return result
+"""
 
 
 async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[str] | dict:

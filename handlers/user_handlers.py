@@ -565,7 +565,7 @@ async def process_task(message: types.Message, db: Database, state: FSMContext):
                              reply_markup=balance_choose_menu())
         return
     msg = await message.answer(f"{status_message} Это будет стоить {cost} 💎")
-    images = await download_and_upload_images(message.bot, message.photo)
+    images = await download_and_upload_images(message.bot, [message])
     prompt = message.caption
     msg_to_del = await message.answer('✍️')
     keyboard = InlineKeyboardMarkup(
@@ -880,7 +880,7 @@ async def handle_prompt(
 
     # Загружаем изображения один раз, если они есть
     if any(msg.photo for msg in album) and model_key != 'Sora - Генерация изображений':
-        image_urls = await download_and_upload_images(bot, message.photo)
+        image_urls = await download_and_upload_images(bot, album)
     if model_key == 'Sora - Генерация изображений' and mode is None:
         cost = IMAGE_GPT_COST
         if image_urls:
@@ -939,7 +939,7 @@ async def handle_prompt(
         # 4. Отправляем запрос в API
         if model_key == 'Sora - Генерация изображений':
             print('sora generate')
-            result_urls = await generate_division(prompt, message.bot, message.photo)
+            result_urls = await generate_division(prompt, message.bot, album)
         else:
             #result_urls = await generate_on_nexus(params)
             result_urls = await generate_on_api(params)
@@ -1135,7 +1135,7 @@ async def answer_gpt(message: types.Message, state: FSMContext):
         await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
-    images = await download_and_upload_images(message.bot, message.photo)
+    images = await download_and_upload_images(message.bot, [message])
     prompt = message.text if message.text else message.caption
     answer = await get_text_answer(prompt, assistant_id, thread_id, images)
     if not answer:

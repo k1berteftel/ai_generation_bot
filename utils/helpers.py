@@ -181,7 +181,7 @@ async def save_image(data: dict) -> str:
 
 async def download_and_upload_images(
         bot: Bot,
-        album: list[types.PhotoSize]
+        album: list[types.Message]
 ) -> list[str]:
     """
     Скачивает фото из Telegram, загружает их на ImgBB и возвращает список URL.
@@ -195,12 +195,12 @@ async def download_and_upload_images(
     if len(messages_to_process) > 10:
         raise ValueError("Можно отправить не более 10 фотографий в одном запросе.")
 
-    for photo in messages_to_process:
+    for msg in messages_to_process:
         # Пропускаем сообщения без фото (например, если в альбоме был текст)
-        if not photo:
+        if not msg.photo:
             continue
 
-        photo_obj = photo
+        photo_obj = msg.photo[-1]
         temp_photo_path = f"temp_{photo_obj.file_unique_id}.jpg"
 
         try:
@@ -220,11 +220,12 @@ async def download_and_upload_images(
     return urls
 
 
-async def save_bot_files(photos: list[types.PhotoSize], bot: Bot):
+async def save_bot_files(msgs: list[types.Message], bot: Bot):
     if not os.path.exists('download'):
         os.mkdir('download')
     files = []
-    for photo in photos:
+    for msg in msgs:
+        photo = msg.photo[-1]
         temp_photo_path = f"download/temp_{photo.file_unique_id}.jpg"
         try:
             await bot.download(file=photo.file_id, destination=temp_photo_path)
