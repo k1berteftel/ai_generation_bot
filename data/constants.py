@@ -6,7 +6,7 @@ MODELS = {
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 — видео по тексту": "seedance-1",
-    "Veo3 - видео сценарию": "veo3_quality",
+    #"Veo3 - видео сценарию": "veo3_quality",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
 
