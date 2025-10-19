@@ -6,6 +6,7 @@ MODELS = {
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 — видео по тексту": "seedance-1",
+    'Sora 2 — видео текст+фото': "sora-2"
     #"Veo3 - видео сценарию": "veo3_quality",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
@@ -115,6 +116,27 @@ MODELS_EXAMPLE_OBJECT = {
         ],
         'manual': 'https://t.me/pakrnet'
     },
+    'Sora 2 — видео текст+фото': {
+        'name': '<b>sora-2</b>',
+        'description': '<em>Генерирует видео по тексту или фото.</em>',
+        'examples': [
+            {
+                'name': '',
+                'media': 'medias/sora/sora_video_ex.mp4',
+                'content_type': 'gif',
+                'prompt': '<blockquote expandable><b>A hyper-realistic police bodycam video of a kangaroo making '
+                          'punching feints toward a police officer on a dusty rural road in Australia. The kangaroo'
+                          ' stands upright, muscles tense, hopping forward and throwing mock punches in the air with'
+                          ' surprising precision, its tail balancing its weight. The officer’s hands are visible, '
+                          'backing away defensively, trying to keep calm. The camera shakes slightly with each '
+                          'movement, capturing dust clouds, bright sunlight, and the kangaroo’s intense gaze. '
+                          'The scene feels chaotic and tense, with realistic motion blur, natural lighting, '
+                          'cinematic documentary style, authentic bodycam realism, 4K, raw and immersive footage. '
+                          '--ar 16:9 --style raw --vibe tense and surreal</b></blockquote>'
+            },
+        ],
+        'manual': 'https://t.me/sora_video_1'
+    },
     'Sora - Генерация изображений': {
         'name': '<b>gpt-4o-image</b>',
         'description': '<em>Генерация изображений</em>',
@@ -170,6 +192,7 @@ MODEL_IMAGE_FIELD = {
 MODEL_DURATIONS = {
     # "Veo3": ["3 сек", "5 сек", "10 сек"],
     # "Pixverse v4.5": ["5 сек", "8 сек"],
+    'Sora 2 — видео текст+фото': ['4 сек', '8 сек', '12 сек'],
     "Kling v2.1 — видео текст+фото": ["5 сек", "10 сек"],
     "Seedance 1 — видео по тексту": ["5 сек", "10 сек"],
     'Seedance 1 Lite': ["5 сек", "10 сек"],
@@ -181,6 +204,7 @@ MODEL_DURATIONS = {
 }
 
 DURATION_PRICES = {
+    'Sora 2 — видео текст+фото': {'4 сек': 80, '8 сек': 90, '12 сек': 100},
     'Seedance 1 Lite': {"5 сек": 60, "10 сек": 100},
     'Seedance 1 Pro': {"5 сек": 80, "10 сек": 130},
     'Haiuo v0.2 Обычный': {"6 сек": 80, "10 сек": 130},
