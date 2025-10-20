@@ -128,8 +128,11 @@ class DialogStates(StatesGroup):
 
 async def prompt_menu(user_id, selected_model, db: Database):
     """Формирует текст и клавиатуру для меню ввода промпта."""
+    print(selected_model)
     durations = MODEL_DURATIONS.get(selected_model)
+    print(durations)
     current_duration = USER_DURATIONS.get(user_id, durations[0]) if durations else None
+    print('current duration: ', current_duration)
     aspect = USER_ASPECT_RATIO.get(user_id, "16:9")
     user = await db.user.get_user(user_id)
 
@@ -400,9 +403,16 @@ async def cb_back_main(callback: types.CallbackQuery, db: Database, state: FSMCo
 
 
 @user_router.callback_query(F.data == "choose_model")
-async def cb_choose_model(callback: types.CallbackQuery):
+async def cb_choose_model(callback: types.CallbackQuery, state: FSMContext):
     text = f"Выбери модель для генерации:"
     await callback.message.delete()
+    user_id = callback.from_user.id
+    if USER_MODELS.get(user_id):
+        del USER_MODELS[user_id]
+    if USER_DURATIONS.get(user_id):
+        del USER_DURATIONS[user_id]
+    if USER_ASPECT_RATIO.get(user_id):
+        del USER_ASPECT_RATIO[user_id]
     await callback.message.answer(text, reply_markup=model_menu(), parse_mode='HTML')
 
 
@@ -631,7 +641,9 @@ async def open_sora_menu(callback: types.CallbackQuery, db: Database, state: FSM
 async def cb_start_gen(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
+    model = USER_MODELS.get(user_id) if (
+            USER_MODELS.get(user_id) not in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']) \
+        else data.get('sub_model')
     if data.get('mode'):
         model += '|text'
     text, keyboard = await prompt_menu(callback.from_user.id, model, db)
@@ -656,7 +668,9 @@ async def cb_aspect_selected(callback: types.CallbackQuery, state: FSMContext, d
     aspect = callback.data.replace("aspect_", "")
     user_id = callback.from_user.id
     USER_ASPECT_RATIO[user_id] = aspect
-    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
+    selected_model = USER_MODELS.get(user_id) if (
+            USER_MODELS.get(user_id) not in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']) \
+        else data.get('sub_model')
     if not selected_model:
         await cb_back_main(callback, state)  # Возврат в главное меню, если модель не выбрана
         return
@@ -678,7 +692,9 @@ async def cb_choose_duration(callback: types.CallbackQuery):
 async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
+    selected_model = USER_MODELS.get(user_id) if (
+            USER_MODELS.get(user_id) not in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']) \
+        else data.get('sub_model')
     if not selected_model: return
 
     d = callback.data.replace("set_duration_", "")
@@ -692,7 +708,9 @@ async def cb_set_duration(callback: types.CallbackQuery, state: FSMContext, db: 
 async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
+    selected_model = USER_MODELS.get(user_id) if (
+            USER_MODELS.get(user_id) not in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']) \
+        else data.get('sub_model')
     if not selected_model: return
 
     prompt_text, prompt_kb = await prompt_menu(user_id, selected_model, db)
@@ -704,7 +722,9 @@ async def cb_back_to_prompt(callback: types.CallbackQuery, state: FSMContext, db
 async def cb_toggle_pixverse_mode(callback: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = callback.from_user.id
     data = await state.get_data()
-    selected_model = USER_MODELS.get(user_id) if not data.get('sub_model') else data.get('sub_model')
+    selected_model = USER_MODELS.get(user_id) if (
+            USER_MODELS.get(user_id) not in ['Haiuo v0.2 — видео текст+фото', 'Seedance 1 — видео по тексту']) \
+        else data.get('sub_model')
 
     current = USER_PIXVERSE_MODE.get(user_id, "smooth")
     USER_PIXVERSE_MODE[user_id] = "normal" if current == "smooth" else "smooth"

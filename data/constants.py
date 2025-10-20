@@ -2,11 +2,11 @@
 
 MODELS = {
     #'Sora - Генерация изображений': 'gpt-4o-image',
-    'Haiuo v0.2 — видео текст+фото': 'hailuo-0.2',
+    'Sora 2 — видео текст+фото': "sora-2",
     # "Pixverse v4.5": "pixverse/pixverse-v4.5",
     "Kling v2.1 — видео текст+фото": "kling-v2.1-master",
     "Seedance 1 — видео по тексту": "seedance-1",
-    'Sora 2 — видео текст+фото': "sora-2"
+    'Haiuo v0.2 — видео текст+фото': 'hailuo-0.2',
     #"Veo3 - видео сценарию": "veo3_quality",
     # "Luma Ray-2": "luma/ray-2-720p",
 }
