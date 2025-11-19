@@ -50,6 +50,32 @@ class AdUrl(Base):
         return f"<AdUrl(name='{self.name}')>"
 
 
+class Admins(Base):
+    __tablename__ = 'admins'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    user_id: Mapped[int] = mapped_column(BigInteger, unique=True)
+    username: Mapped[str] = mapped_column(String(256), nullable=True)
+
+
+class Deeplinks(Base):
+    __tablename__ = 'deeplinks'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    owner: Mapped[int] = mapped_column(BigInteger)
+    name: Mapped[str] = mapped_column(String(256))
+    all_users: Mapped[int] = mapped_column(Integer, server_default='0')
+    unique_users: Mapped[int] = mapped_column(Integer, server_default='0')
+    not_unique_users: Mapped[int] = mapped_column(Integer, server_default='0')
+    income: Mapped[int] = mapped_column(Integer, nullable=False, server_default='0')
+    requests: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default='0')
+
+    completed_op: Mapped[int] = mapped_column(Integer, server_default='0')
+    create: Mapped[datetime] = mapped_column(DateTime, default=func.now(), server_default=None, nullable=True)
+
+
 class SubscriptionCheck(Base):
     __tablename__ = 'op'
 

@@ -29,3 +29,11 @@ class SetStartMessageDelay(StatesGroup):
 class Malling(StatesGroup):
     waiting_for_message = State()
     confirm_malling = State()
+
+
+class Partners(StatesGroup):
+    get_partner = State()
+
+
+class Deeplink(StatesGroup):
+    name = State()

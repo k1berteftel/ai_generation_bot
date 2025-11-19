@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from .repository import (UserRepository,AdUrlRepository, SubscriptionRepository, StatisticsRepository,
-                         StartMessageRepository, PaymentsRepository)
+from .repository import (UserRepository, AdUrlRepository, SubscriptionRepository, StatisticsRepository,
+                         StartMessageRepository, PaymentsRepository, DeeplinkRepository, AdminRepository)
 
 class Database:
     """
@@ -12,6 +12,8 @@ class Database:
         # Создаем экземпляры всех наших репозиториев
         self.user = UserRepository(session_factory)
         self.ad_url = AdUrlRepository(session_factory)
+        self.deeplinks = DeeplinkRepository(session_factory)
+        self.admins = AdminRepository(session_factory)
         self.subscription = SubscriptionRepository(session_factory)
         self.statistic = StatisticsRepository(session_factory)
         self.start_message = StartMessageRepository(session_factory)

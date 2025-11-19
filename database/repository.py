@@ -7,7 +7,7 @@ from sqlalchemy import select, update, delete, func, and_, text, desc
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .models import User, StartMessage, AdUrl, SubscriptionCheck, Statistic, Transactions
+from .models import User, StartMessage, AdUrl, SubscriptionCheck, Statistic, Transactions, Admins, Deeplinks
 
 
 class UserRepository:
@@ -231,6 +231,96 @@ class AdUrlRepository:
                 stmt = update(AdUrl).where(AdUrl.name == name).values(**values_to_increment)
                 await session.execute(stmt)
                 await session.commit()
+
+
+class DeeplinkRepository:
+    def __init__(self, session_factory: async_sessionmaker):
+        self.session_factory = session_factory
+
+    async def get_or_create(self, user_id: int, name: str) -> Deeplinks:
+        """Находит рекламную ссылку по имени или создает новую."""
+        async with self.session_factory() as session:
+            ad_url = await session.get(Deeplinks, name)
+            if ad_url:
+                return ad_url
+
+            new_ad_url = Deeplinks(owner=user_id, name=name)
+            session.add(new_ad_url)
+            await session.commit()
+            return new_ad_url
+
+    async def get_all_admin(self, user_id: int) -> List[Deeplinks]:
+        """Возвращает все рекламные ссылки."""
+        async with self.session_factory() as session:
+            stmt = select(Deeplinks).where(Deeplinks.owner == user_id).order_by(desc(Deeplinks.create))
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def get_all(self) -> List[Deeplinks]:
+        """Возвращает все рекламные ссылки."""
+        async with self.session_factory() as session:
+            stmt = select(Deeplinks).order_by(desc(Deeplinks.create))
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def get_by_name(self, name: str) -> Deeplinks | None:
+        """
+        Находит рекламную ссылку по её имени (primary key).
+        """
+        async with self.session_factory() as session:
+            return await session.get(Deeplinks, name)
+
+    async def delete_by_name(self, name: str):
+        """Удаляет рекламную ссылку по имени."""
+        async with self.session_factory() as session:
+            stmt = delete(Deeplinks).where(Deeplinks.name == name)
+            await session.execute(stmt)
+            await session.commit()
+
+    async def increment_counters(self, user_id: int, name: str, **counters_to_add):
+        """
+        Увеличивает любые счетчики для рекламной ссылки.
+        Пример: await db.ad_url.increment_counters('tg_ad', all_users=1, income=500)
+        """
+        async with self.session_factory() as session:
+            await self.get_or_create(user_id, name)  # Гарантируем, что запись существует
+
+            values_to_increment = {}
+            for key, value in counters_to_add.items():
+                if hasattr(Deeplinks, key):
+                    values_to_increment[key] = getattr(Deeplinks, key) + value
+
+            if values_to_increment:
+                stmt = update(Deeplinks).where(Deeplinks.name == name).values(**values_to_increment)
+                await session.execute(stmt)
+                await session.commit()
+
+
+class AdminRepository:
+    def __init__(self, session_factory: async_sessionmaker):
+        self.session_factory = session_factory
+
+    async def get_or_create(self, user_id: int, username: str = None):
+        async with self.session_factory() as session:
+            admin = await session.scalar(select(Admins).where(Admins.user_id == user_id))
+            if not admin:
+                admin = Admins(user_id=user_id, username=username)
+                session.add(admin)
+            await session.commit()
+        return admin
+
+    async def get_all(self):
+        async with self.session_factory() as session:
+            stmt = select(Admins)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def delete(self, user_id):
+        """Удаляет рекламную ссылку по имени."""
+        async with self.session_factory() as session:
+            stmt = delete(Admins).where(Admins.user_id == user_id)
+            await session.execute(stmt)
+            await session.commit()
 
 
 class SubscriptionRepository:

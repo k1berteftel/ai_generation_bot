@@ -1,22 +1,22 @@
-import json
-import logging
 import os
 import sys
 import time
+from typing import Callable, Any, Awaitable
 
-from aiogram import Router, types, F, Dispatcher, Bot
+from aiogram import Router, types, F, Bot, BaseMiddleware
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, Update, User
 
 import config
 from APIKeyManager.apikeymanager import APIKeyManager
 from admin import texts
-from admin.admin_keyboard import admin_panel_menu, op_panel_button, cancel_op_panel_button, ad_urls_panel_button, \
-    cancel_urls_panel_button, ad_url_one_panel_button, op_url_one_bottom_panel, cancel_key_panel_button, \
-    api_keys_panel_button, cancel_copy_message, start_message_menu_keyboard, confirm_malling_keyboard
-from admin.admin_states import OpState, NameUrl, StartMessage, \
-    UpdateLinkOp, ApiKeyStates, SetStartMessageDelay, Malling
+from admin.admin_keyboard import (admin_panel_menu, op_panel_button, cancel_op_panel_button, ad_urls_panel_button,
+    cancel_urls_panel_button, ad_url_one_panel_button, op_url_one_bottom_panel, cancel_key_panel_button,
+    api_keys_panel_button, cancel_copy_message, start_message_menu_keyboard, confirm_malling_keyboard,
+    get_partners_keyboard, partner_panel_menu, get_deeplinks_panel_button, deeplink_one_panel_button)
+from admin.admin_states import (OpState, NameUrl, StartMessage,
+    UpdateLinkOp, ApiKeyStates, SetStartMessageDelay, Malling, Partners, Deeplink)
 from admin.services import format_statistics_report
 
 from utils.tables import get_table
@@ -26,14 +26,156 @@ from database.database import Database
 
 admin_router = Router()
 
-# Фильтр, который проверяет, является ли пользователь админом
-admin_router.message.filter(F.from_user.id.in_(list_admins))
-admin_router.callback_query.filter(F.from_user.id.in_(list_admins))
+
+class AdminsMiddleware(BaseMiddleware):
+    async def __call__(
+            self,
+            handler: Callable[[Update, dict[str, Any]], Awaitable[Any]],
+            event: Update,
+            data: dict[str, Any],
+    ) -> Any:
+        event_from_user: User = data.get('event_from_user')
+        db: Database = data.get('db')
+        if event_from_user.id not in list_admins:
+            return
+        if event_from_user.id not in [admin.user_id for admin in await db.admins.get_all()]:
+            return
+        return await handler(event, data)
+
+
+admin_router.message(AdminsMiddleware())
+admin_router.callback_query(AdminsMiddleware())
 
 
 @admin_router.message(Command('admin'))
-async def admin_panel_entry(message: types.Message):
-    await message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
+async def admin_panel_entry(message: types.Message, state: FSMContext):
+    await state.clear()
+    if message.from_user.id in list_admins:
+        await message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=admin_panel_menu())
+    else:
+        await message.answer(texts.ADMIN_PANEL_GREETING, reply_markup=partner_panel_menu())
+
+
+@admin_router.message(F.text == 'Партнерские ссылки')
+async def deeplinks_handler(message: types.Message, db: Database, state: FSMContext):
+    if message.from_user.id in list_admins:
+        ad_urls = await db.deeplinks.get_all()
+    else:
+        ad_urls = await db.deeplinks.get_all_admin(message.from_user.id)
+    data = await state.get_data()
+    page = data.get('page', 0)
+    await message.answer(texts.AD_URLS_MENU, reply_markup=get_deeplinks_panel_button(ad_urls, page))
+
+
+@admin_router.callback_query(F.data.startswith('partner_pager'))
+async def deeplinks_pager(call: types.CallbackQuery, db: Database, state: FSMContext):
+    await call.message.delete()
+    action = call.data.split('_')[-1]
+    data = await state.get_data()
+    page = data.get('page', 0)
+    if action == 'next':
+        page += 1
+    else:
+        page -= 1
+    await state.update_data(page=page)
+    if call.from_user.id in list_admins:
+        ad_urls = await db.deeplinks.get_all()
+    else:
+        ad_urls = await db.deeplinks.get_all_admin(call.from_user.id)
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_deeplinks_panel_button(ad_urls, page))
+
+
+async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, name: str, is_update: bool = False):
+    """Отображает статистику для одной конкретной рекламной ссылки."""
+    ad_url_data = await db.deeplinks.get_by_name(name)
+    if not ad_url_data:
+        await call.answer("Ссылка не найдена", show_alert=True)
+        return
+
+    users = await db.user.get_users(ad_url=ad_url_data.name, passed=True)
+    active = 0
+    not_passed = 0
+    for user in users:
+        if user.active:
+            active += 1
+        if not user.passed:
+            not_passed += 1
+
+    text = texts.AD_URL_STATS_TEMPLATE.format(
+        name=ad_url_data.name,
+        unique_users=ad_url_data.unique_users,
+        requests=ad_url_data.requests,
+        income=ad_url_data.income,
+        active=active,
+        not_active=len(users) - active,
+        passed=len(users),
+        not_passed=not_passed,
+        bot_name=config.BOT_NAME
+    )
+    if is_update:
+        text = "<i>ОБНОВЛЕНО</i>\n\n" + text
+
+    keyboard = deeplink_one_panel_button(name)
+    await call.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
+
+
+async def _show_deeplink_menu(message: types.Message, db: Database, page: int = 0, is_edit: bool = False):
+    """Внутренняя функция для отображения меню рекламных ссылок."""
+    if message.from_user.id in list_admins:
+        ad_urls = await db.deeplinks.get_all()
+    else:
+        ad_urls = await db.deeplinks.get_all_admin(message.from_user.id)
+    keyboard = get_deeplinks_panel_button(ad_urls, page)
+    if is_edit:
+        await message.edit_text(texts.AD_URLS_MENU, reply_markup=keyboard)
+    else:
+        await message.answer(texts.AD_URLS_MENU, reply_markup=keyboard)
+
+
+@admin_router.callback_query(F.data.startswith('deeplink:'))
+async def deeplinks_action_handler(call: types.CallbackQuery, db: Database, state: FSMContext):
+
+    await state.set_state()
+
+    try:
+        _, action, *params = call.data.split(':')
+        name = params[0] if params else None
+    except ValueError:
+        return await call.answer("Ошибка данных.", show_alert=True)
+
+    data = await state.get_data()
+    page = data.get('page', 0)
+
+    if action == 'view':
+        await _show_single_deeplink_stats(call, db, name)
+    elif action == 'update':
+        await _show_single_deeplink_stats(call, db, name, is_update=True)
+    elif action == 'delete':
+        await db.deeplinks.delete_by_name(name)
+        await call.answer(texts.SUCCESSFULLY_DELETED, show_alert=True)
+        await _show_deeplink_menu(call.message, db, page, is_edit=True)
+    elif action == 'create':
+        await call.message.edit_text(texts.PROMPT_FOR_AD_URL_NAME)
+        #await state.set_state(NameUrl.name)
+    elif action == 'back':
+        await _show_deeplink_menu(call.message, db, page, is_edit=True)
+
+
+@admin_router.callback_query(F.data == 'create_deeplink_panel')
+async def create_deeplink_handler(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text(texts.PROMPT_FOR_AD_URL_NAME)
+    await state.set_state(Deeplink.name)
+
+
+@admin_router.message(Deeplink.name)
+async def set_deeplink_name_handler(message: types.Message, state: FSMContext, db: Database):
+    await state.set_state()
+    data = await state.get_data()
+    page = data.get('page', 0)
+    # Создаем запись через репозиторий
+    await db.deeplinks.get_or_create(message.from_user.id, message.text.replace(' ', '_'))
+    await message.answer(texts.SUCCESSFULLY_ADDED)
+    await _show_deeplink_menu(message, db, page)
 
 
 @admin_router.message(F.text == 'Рассылки')
@@ -386,15 +528,59 @@ async def send_logs_bot_func(message: types.Message):
         await message.answer("Файл с логами не найден.")
 
 
+@admin_router.message(F.text == 'Партнеры')
+async def handle_partner_data(message: types.Message, db: Database):
+    admins = await db.admins.get_all()
+    keyboard = await get_partners_keyboard(admins)
+    await message.answer(
+        text='Нажмите на партнера которого хотели бы удалить или добавьте нового по кнопке ниже',
+        reply_markup=keyboard
+    )
 
 
+@admin_router.callback_query(F.data == 'add_partner_switcher')
+async def handle_add_partner(call: types.CallbackQuery, state: FSMContext):
+    await state.set_state(Partners.get_partner)
+    await call.message.delete()
+    await call.message.answer('Отправьте Telegram ID для нового партнера или перешлите его сообщение боту')
+
+
+@admin_router.message(F.text, Partners.get_partner)
+async def get_partner(message: types.Message, db: Database, state: FSMContext):
+    if message.forward_from:
+        user_id = message.forward_from.id
+        username = message.forward_from.username
+    else:
+        try:
+            user_id = int(message.text)
+            username = None
+        except Exception:
+            await message.answer('Telegram ID должен быть числом, пожалуйста попробуйте снова')
+            return
+    await db.admins.get_or_create(user_id, username)
+    await state.clear()
+    await message.answer('Партнер был успешно добавлен', reply_markup=admin_panel_menu())
+
+
+@admin_router.callback_query(F.data.startswith('partner_del'))
+async def del_partner(call: types.CallbackQuery, db: Database):
+    user_id = int(call.data.split('_')[-1])
+    await db.admins.delete(user_id)
+    await call.answer('Партнер был успешно удален')
+    await call.message.delete()
+
+    admins = await db.admins.get_all()
+    keyboard = await get_partners_keyboard(admins)
+    await call.message.answer(
+        text='Нажмите на партнера которого хотели бы удалить или добавьте нового по кнопке ниже',
+        reply_markup=keyboard
+    )
 
 
 @admin_router.message(Command('restart'))
 async def restart_bot(message: types.Message):
     if message.from_user.id in list_admins:
         os.execl(sys.executable, sys.executable, *sys.argv)
-
 
 
 @admin_router.message(Command('promote'))

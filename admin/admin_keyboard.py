@@ -4,7 +4,7 @@ from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-from database.models import SubscriptionCheck, AdUrl
+from database.models import SubscriptionCheck, AdUrl, Admins, Deeplinks
 
 
 def admin_panel_menu():
@@ -27,9 +27,61 @@ def admin_panel_menu():
         ],
         [
             KeyboardButton(text='Стартовое сообщение')
+        ],
+        [
+            KeyboardButton(text='Партнеры'),
+            KeyboardButton(text='Партнерские ссылки')
         ]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+    return keyboard
+
+
+def partner_panel_menu():
+    keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text='Партнерские ссылки')]], resize_keyboard=True)
+    return keyboard
+
+
+async def get_partners_keyboard(admins: list[Admins]) -> InlineKeyboardMarkup:
+    keyboards = []
+    for admin in admins:
+        keyboards.append([InlineKeyboardButton(text=admin.username if admin.username else str(admin.user_id),
+                                              callback_data=f'partner_del_{admin.user_id}')])
+    keyboards.append(InlineKeyboardButton(text='➕Добавить партнера', callback_data='add_partner_switcher'))
+    return InlineKeyboardMarkup(inline_keyboard=keyboards)
+
+
+def get_deeplinks_panel_button(ad_url_list: List[Deeplinks], page: int = 0):
+    buttons = []
+    for ad_url in ad_url_list:
+        buttons.append([InlineKeyboardButton(text=ad_url.name, callback_data=f'deeplink:view:{ad_url.name}')])
+    # [[], []]
+    buttons = [buttons[i:i + 10] for i in range(0, len(buttons), 10)]
+    # [[[], []], [[], []]]
+    pager_buttons = []
+    if page != 0:
+        pager_buttons.append(InlineKeyboardButton(text='◀️', callback_data='partner_pager_back'))
+    pager_buttons.append(InlineKeyboardButton(text=f'{page+1}/{len(buttons)}', callback_data='show_pages'))
+    if page != len(buttons) - 1:
+        pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='partner_pager_next'))
+    keyboard = buttons[page]
+    # [[], []]
+    keyboard.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_deeplink_panel')])
+    keyboard.append(pager_buttons)
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
+def deeplink_one_panel_button(name):
+    buttons = [
+        [
+            InlineKeyboardButton(text='🔄 Обновить', callback_data=f'deeplink:update:{name}'),
+            InlineKeyboardButton(text='🗑️ Удалить', callback_data=f'deeplink:delete:{name}'),
+        ],
+        [
+            InlineKeyboardButton(text='Назад', callback_data='deeplink:back')
+        ],
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
 
 
