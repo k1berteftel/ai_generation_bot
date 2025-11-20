@@ -104,8 +104,6 @@ async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, n
     text = texts.DEEPLINK_STATS_TEMPLATE.format(
         name=ad_url_data.name,
         unique_users=ad_url_data.unique_users,
-        requests=ad_url_data.requests,
-        income=ad_url_data.income,
         active=active,
         not_active=len(users) - active,
         passed=len(users),
