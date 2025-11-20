@@ -24,6 +24,7 @@ class User(Base):
     passed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="0")
     ad_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    deeplink: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, server_default=None)
     last_generation: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, server_default=None)
     is_unlim: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     unlim_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

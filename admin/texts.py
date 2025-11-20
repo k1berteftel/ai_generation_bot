@@ -39,6 +39,23 @@ AD_URL_STATS_TEMPLATE = """
 Ссылка: https://t.me/{bot_name}?start=ad_url_start_{name}
 """
 
+DEEPLINK_STATS_TEMPLATE = """
+Реферальная ссылка: <b>{name}</b>
+
+Всего перешло по ссылке: {unique_users}
+Живые: {active}
+Мертвые: {not_active}
+
+Всего запросов: {requests}
+Куплено на: {income} руб
+
+Прошло ОП: {passed}
+Не прошло ОП: {not_passed}
+
+Ссылка: https://t.me/{bot_name}?start=deeplink_{name}
+"""
+
+
 # --- Other Messages ---
 PROMPT_FOR_NEW_LINK = "Отправьте новую ссылку:"
 PROMPT_FOR_CHANNEL_ID = "Отправьте id канала:"

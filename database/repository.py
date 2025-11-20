@@ -16,7 +16,7 @@ class UserRepository:
         self.session_factory = session_factory
 
 
-    async def get_or_create_user(self, user_id: int, username: str | None, ad_url: str | None = None, ref_id: str | None = None) -> \
+    async def get_or_create_user(self, user_id: int, username: str | None, ad_url: str | None = None, deeplink: str | None = None, ref_id: str | None = None) -> \
             tuple[Type[User], bool] | tuple[User, bool]:
 
         async with self.session_factory() as session:
@@ -29,6 +29,7 @@ class UserRepository:
                 id=user_id,
                 username=username,
                 ad_url=ad_url,
+                deeplink=deeplink,
                 ref_id=ref_id
             )
             session.add(new_user)

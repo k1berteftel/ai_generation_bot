@@ -92,7 +92,7 @@ async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, n
         await call.answer("Ссылка не найдена", show_alert=True)
         return
 
-    users = await db.user.get_users(ad_url=ad_url_data.name, passed=True)
+    users = await db.user.get_users(deeplink=ad_url_data.name, passed=True)
     active = 0
     not_passed = 0
     for user in users:
@@ -101,7 +101,7 @@ async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, n
         if not user.passed:
             not_passed += 1
 
-    text = texts.AD_URL_STATS_TEMPLATE.format(
+    text = texts.DEEPLINK_STATS_TEMPLATE.format(
         name=ad_url_data.name,
         unique_users=ad_url_data.unique_users,
         requests=ad_url_data.requests,
@@ -119,7 +119,7 @@ async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, n
     await call.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
 
 
-async def _show_deeplink_menu(message: types.Message, db: Database, page: int = 0, is_edit: bool = False):
+async def _show_deeplink_menu(user_id: int, message: types.Message, db: Database, page: int = 0, is_edit: bool = False):
     """Внутренняя функция для отображения меню рекламных ссылок."""
     if message.from_user.id in list_admins:
         ad_urls = await db.deeplinks.get_all()
@@ -153,12 +153,12 @@ async def deeplinks_action_handler(call: types.CallbackQuery, db: Database, stat
     elif action == 'delete':
         await db.deeplinks.delete_by_name(name)
         await call.answer(texts.SUCCESSFULLY_DELETED, show_alert=True)
-        await _show_deeplink_menu(call.message, db, page, is_edit=True)
+        await _show_deeplink_menu(call.from_user.id, call.message, db, page, is_edit=True)
     elif action == 'create':
         await call.message.edit_text(texts.PROMPT_FOR_AD_URL_NAME)
         #await state.set_state(NameUrl.name)
     elif action == 'back':
-        await _show_deeplink_menu(call.message, db, page, is_edit=True)
+        await _show_deeplink_menu(call.from_user.id, call.message, db, page, is_edit=True)
 
 
 @admin_router.callback_query(F.data == 'create_deeplink_panel')
@@ -175,7 +175,7 @@ async def set_deeplink_name_handler(message: types.Message, state: FSMContext, d
     # Создаем запись через репозиторий
     await db.deeplinks.get_or_create(message.from_user.id, message.text.replace(' ', '_'))
     await message.answer(texts.SUCCESSFULLY_ADDED)
-    await _show_deeplink_menu(message, db, page)
+    await _show_deeplink_menu(message.from_user.id, message, db, page)
 
 
 @admin_router.message(F.text == 'Рассылки')

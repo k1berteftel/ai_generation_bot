@@ -271,10 +271,13 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
     param = parts[1] if len(parts) > 1 else ""
 
     url_name = ""
+    deeplink_name = None
     ref_id = None
 
     if param.startswith('ad_url_start_'):
         url_name = param.replace('ad_url_start_', '')
+    elif param.startswith('deeplink_'):
+        deeplink_name = param.replace('deeplink_', '')
     elif param:
         try:
             ref_id = int(param)
@@ -286,6 +289,7 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
         user_id=message.from_user.id,
         username=message.from_user.username,
         ad_url=url_name or None,
+        deeplink=deeplink_name,
         ref_id=ref_id or None
     )
 
@@ -304,6 +308,15 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
         else:
             logging.info(f"User {user.id} is existing, ad_url: {url_name}. Updating non-unique stats.")
             await db.ad_url.increment_counters(name=url_name, all_users=1, not_unique_users=1)
+
+    if deeplink_name:
+        if is_new:
+            logging.info(f"User {user.id} is new, ad_url: {deeplink_name}. Updating unique stats.")
+            await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, unique_users=1)
+            await db.statistic.increment_counters(name='users', now_month=1)
+        else:
+            logging.info(f"User {user.id} is existing, ad_url: {deeplink_name}. Updating non-unique stats.")
+            await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, not_unique_users=1)
 
     op_answer = await check_user_op(db, bot, message.from_user.id)
     if op_answer is not None:
@@ -837,6 +850,9 @@ async def process_successful_payment(payment_id, callback, db: Database, amount,
         ad_url = await db.user.get_user_value(user_id, 'ad_url')
         if ad_url:
             await db.ad_url.increment_counters(ad_url, income=int(price))
+        deeplink = await db.user.get_user_value(user_id, 'deeplink')
+        if deeplink:
+            await db.deeplinks.increment_counters(deeplink, income=int(price))
 
         await callback.message.answer('✅ Оплата прошла успешно. Ваш баланс пополнен!')
 
