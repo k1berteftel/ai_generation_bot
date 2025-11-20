@@ -62,7 +62,7 @@ def get_deeplinks_panel_button(ad_url_list: List[Deeplinks], page: int = 0):
     if page != 0:
         pager_buttons.append(InlineKeyboardButton(text='◀️', callback_data='partner_pager_back'))
     pager_buttons.append(InlineKeyboardButton(text=f'{page+1}/{len(buttons)}', callback_data='show_pages'))
-    if page != len(buttons) - 1:
+    if buttons and page != len(buttons) - 1:
         pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='partner_pager_next'))
     keyboard = buttons[page] if buttons else []
     # [[], []]

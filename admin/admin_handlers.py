@@ -167,7 +167,7 @@ async def create_deeplink_handler(call: types.CallbackQuery, state: FSMContext):
     await state.set_state(Deeplink.name)
 
 
-@admin_router.message(Deeplink.name)
+@admin_router.message(F.text, Deeplink.name)
 async def set_deeplink_name_handler(message: types.Message, state: FSMContext, db: Database):
     await state.set_state()
     data = await state.get_data()

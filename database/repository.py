@@ -240,7 +240,9 @@ class DeeplinkRepository:
     async def get_or_create(self, user_id: int, name: str) -> Deeplinks:
         """Находит рекламную ссылку по имени или создает новую."""
         async with self.session_factory() as session:
-            ad_url = await session.get(Deeplinks, name)
+            stmt = select(Deeplinks).where(Deeplinks.name == name)
+            result = await session.execute(stmt)
+            ad_url = result.scalar_one_or_none()
             if ad_url:
                 return ad_url
 
