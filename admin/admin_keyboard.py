@@ -47,7 +47,7 @@ async def get_partners_keyboard(admins: list[Admins]) -> InlineKeyboardMarkup:
     for admin in admins:
         keyboards.append([InlineKeyboardButton(text=admin.username if admin.username else str(admin.user_id),
                                               callback_data=f'partner_del_{admin.user_id}')])
-    keyboards.append(InlineKeyboardButton(text='➕Добавить партнера', callback_data='add_partner_switcher'))
+    keyboards.append([InlineKeyboardButton(text='➕Добавить партнера', callback_data='add_partner_switcher')])
     return InlineKeyboardMarkup(inline_keyboard=keyboards)
 
 
@@ -64,7 +64,7 @@ def get_deeplinks_panel_button(ad_url_list: List[Deeplinks], page: int = 0):
     pager_buttons.append(InlineKeyboardButton(text=f'{page+1}/{len(buttons)}', callback_data='show_pages'))
     if page != len(buttons) - 1:
         pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='partner_pager_next'))
-    keyboard = buttons[page]
+    keyboard = buttons[page] if buttons else []
     # [[], []]
     keyboard.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_deeplink_panel')])
     keyboard.append(pager_buttons)
