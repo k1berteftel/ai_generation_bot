@@ -270,7 +270,10 @@ class DeeplinkRepository:
         Находит рекламную ссылку по её имени (primary key).
         """
         async with self.session_factory() as session:
-            return await session.get(Deeplinks, name)
+            stmt = select(Deeplinks).where(Deeplinks.name == name)
+            result = await session.execute(stmt)
+            ad_url = result.scalar_one_or_none()
+            return ad_url
 
     async def delete_by_name(self, name: str):
         """Удаляет рекламную ссылку по имени."""
