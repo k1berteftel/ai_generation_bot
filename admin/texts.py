@@ -46,6 +46,9 @@ DEEPLINK_STATS_TEMPLATE = """
 Живые: {active}
 Мертвые: {not_active}
 
+{requests}
+{income}
+
 Прошло ОП: {passed}
 Не прошло ОП: {not_passed}
 

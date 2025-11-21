@@ -85,7 +85,7 @@ async def deeplinks_pager(call: types.CallbackQuery, db: Database, state: FSMCon
     await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_deeplinks_panel_button(ad_urls, page))
 
 
-async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, name: str, is_update: bool = False):
+async def _show_single_deeplink_stats(user_id: int, call: types.CallbackQuery, db: Database, name: str, is_update: bool = False):
     """Отображает статистику для одной конкретной рекламной ссылки."""
     ad_url_data = await db.deeplinks.get_by_name(name)
     if not ad_url_data:
@@ -104,6 +104,8 @@ async def _show_single_deeplink_stats(call: types.CallbackQuery, db: Database, n
     text = texts.DEEPLINK_STATS_TEMPLATE.format(
         name=ad_url_data.name,
         unique_users=ad_url_data.unique_users,
+        requests=f'Всего запросов: {ad_url_data.requests}' if user_id in list_admins else '',
+        income=f'Куплено на: {ad_url_data.income} руб' if user_id in list_admins else '',
         active=active,
         not_active=len(users) - active,
         passed=len(users),
@@ -145,9 +147,9 @@ async def deeplinks_action_handler(call: types.CallbackQuery, db: Database, stat
     page = data.get('page', 0)
 
     if action == 'view':
-        await _show_single_deeplink_stats(call, db, name)
+        await _show_single_deeplink_stats(call.from_user.id, call, db, name)
     elif action == 'update':
-        await _show_single_deeplink_stats(call, db, name, is_update=True)
+        await _show_single_deeplink_stats(call.from_user.id, call, db, name, is_update=True)
     elif action == 'delete':
         await db.deeplinks.delete_by_name(name)
         await call.answer(texts.SUCCESSFULLY_DELETED, show_alert=True)
