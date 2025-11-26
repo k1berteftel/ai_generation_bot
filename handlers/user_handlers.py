@@ -284,7 +284,6 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
         except Exception:
             ...
 
-
     user, is_new = await db.user.get_or_create_user(
         user_id=message.from_user.id,
         username=message.from_user.username,

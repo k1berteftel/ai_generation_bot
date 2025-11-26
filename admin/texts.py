@@ -45,10 +45,8 @@ DEEPLINK_STATS_TEMPLATE = """
 Всего перешло по ссылке: {unique_users}
 Живые: {active}
 Мертвые: {not_active}
-
 {requests}
 {income}
-
 Прошло ОП: {passed}
 Не прошло ОП: {not_passed}
 

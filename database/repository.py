@@ -283,13 +283,12 @@ class DeeplinkRepository:
             await session.execute(stmt)
             await session.commit()
 
-    async def increment_counters(self, user_id: int, name: str, **counters_to_add):
+    async def increment_counters(self, name: str, **counters_to_add):
         """
         Увеличивает любые счетчики для рекламной ссылки.
         Пример: await db.ad_url.increment_counters('tg_ad', all_users=1, income=500)
         """
         async with self.session_factory() as session:
-            await self.get_or_create(user_id, name)  # Гарантируем, что запись существует
 
             values_to_increment = {}
             for key, value in counters_to_add.items():

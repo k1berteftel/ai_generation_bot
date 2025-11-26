@@ -104,8 +104,8 @@ async def _show_single_deeplink_stats(user_id: int, call: types.CallbackQuery, d
     text = texts.DEEPLINK_STATS_TEMPLATE.format(
         name=ad_url_data.name,
         unique_users=ad_url_data.unique_users,
-        requests=f'Всего запросов: {ad_url_data.requests}' if user_id in list_admins else '',
-        income=f'Куплено на: {ad_url_data.income} руб' if user_id in list_admins else '',
+        requests=f'\nВсего запросов: {ad_url_data.requests}' if user_id in list_admins else '',
+        income=f'Куплено на: {ad_url_data.income} руб\n' if user_id in list_admins else '',
         active=active,
         not_active=len(users) - active,
         passed=len(users),
