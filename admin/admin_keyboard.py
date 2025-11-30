@@ -54,7 +54,7 @@ async def get_partners_keyboard(admins: list[Admins]) -> InlineKeyboardMarkup:
 def get_deeplinks_panel_button(ad_url_list: List[Deeplinks], page: int = 0):
     buttons = []
     for ad_url in ad_url_list:
-        buttons.append([InlineKeyboardButton(text=ad_url.name, callback_data=f'deeplink:view:{ad_url.name}')])
+        buttons.append([InlineKeyboardButton(text=ad_url.name, callback_data=f'deeplink:view:{ad_url.name.replace(' ', '_')}')])
     # [[], []]
     buttons = [buttons[i:i + 10] for i in range(0, len(buttons), 10)]
     # [[[], []], [[], []]]
