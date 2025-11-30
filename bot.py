@@ -56,8 +56,8 @@ async def main():
     dp['bot'] = bot
 
     # Регистрация роутеров
-    dp.include_router(user_router)
     dp.include_router(admin_router)
+    dp.include_router(user_router)
 
     # Выполнение задач при старте
     await on_startup(bot)

@@ -43,8 +43,8 @@ class AdminsMiddleware(BaseMiddleware):
         return await handler(event, data)
 
 
-admin_router.message.outer_middleware(AdminsMiddleware())
-admin_router.callback_query.outer_middleware(AdminsMiddleware())
+admin_router.message.middleware(AdminsMiddleware())
+admin_router.callback_query.middleware(AdminsMiddleware())
 
 
 @admin_router.message(Command('admin'))
