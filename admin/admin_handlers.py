@@ -36,9 +36,9 @@ class AdminsMiddleware(BaseMiddleware):
     ) -> Any:
         event_from_user: User = data.get('event_from_user')
         db: Database = data.get('db')
-        if event_from_user.id not in list_admins:
-            return
-        if event_from_user.id not in [admin.user_id for admin in await db.admins.get_all()]:
+        admins = list_admins
+        admins.extend([admin.user_id for admin in await db.admins.get_all()])
+        if event_from_user.id not in admins:
             return
         return await handler(event, data)
 
