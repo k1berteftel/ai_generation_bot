@@ -26,6 +26,7 @@ async def on_startup(bot: Bot):
     logging.info("База данных готова к работе.")
     # Тут можно добавить отправку сообщения админу о запуске бота
 
+
 async def main():
     """Основная функция для запуска бота."""
     bot = Bot(token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -55,8 +56,8 @@ async def main():
     dp['bot'] = bot
 
     # Регистрация роутеров
-    dp.include_router(admin_router)
     dp.include_router(user_router)
+    dp.include_router(admin_router)
 
     # Выполнение задач при старте
     await on_startup(bot)
