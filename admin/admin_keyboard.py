@@ -66,8 +66,8 @@ def get_deeplinks_panel_button(ad_url_list: List[Deeplinks], page: int = 0):
         pager_buttons.append(InlineKeyboardButton(text='▶️', callback_data='partner_pager_next'))
     keyboard = buttons[page] if buttons else []
     # [[], []]
-    keyboard.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_deeplink_panel')])
     keyboard.append(pager_buttons)
+    keyboard.append([InlineKeyboardButton(text='Создать рекламную ссылку', callback_data='create_deeplink_panel')])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
