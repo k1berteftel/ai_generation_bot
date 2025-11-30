@@ -169,6 +169,9 @@ async def create_deeplink_handler(call: types.CallbackQuery, state: FSMContext):
 
 @admin_router.message(F.text, Deeplink.name)
 async def set_deeplink_name_handler(message: types.Message, state: FSMContext, db: Database):
+    if len(message.text) > 10:
+        await message.answer('Слишком длинное название ссылки, попробуйте еще раз')
+        return
     await state.set_state()
     data = await state.get_data()
     page = data.get('page', 0)

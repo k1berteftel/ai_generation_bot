@@ -283,6 +283,12 @@ class DeeplinkRepository:
             await session.execute(stmt)
             await session.commit()
 
+    async def delete_all(self):
+        async with self.session_factory() as session:
+            stmt = delete(Deeplinks)
+            await session.execute(stmt)
+            await session.commit()
+
     async def increment_counters(self, name: str, **counters_to_add):
         """
         Увеличивает любые счетчики для рекламной ссылки.
