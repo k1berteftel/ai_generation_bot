@@ -68,6 +68,7 @@ def get_admins_button(user_id: int, ad_url_list: List[Deeplinks], page: int = 0)
     # [[], []]
     keyboard.append(pager_buttons)
     keyboard.append([InlineKeyboardButton(text='Удалить партнера', callback_data=f'partner_del_{user_id}')])
+    keyboard.append([InlineKeyboardButton(text='Назад', callback_data=f'back_partners_show')])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 

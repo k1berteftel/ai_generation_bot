@@ -591,6 +591,18 @@ async def partners_deeplink_pager(call: types.CallbackQuery, state: FSMContext, 
     await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_admins_button(user_id, ad_urls, page))
 
 
+@admin_router.callback_query(F.data == 'back_partners_show')
+async def show_partners_data(call: types.CallbackQuery, state: FSMContext, db: Database):
+    await call.message.delete()
+    await state.clear()
+    admins = await db.admins.get_all()
+    keyboard = await get_partners_keyboard(admins)
+    await call.message.answer(
+        text='Нажмите на партнера, ссылки которого вы хотели бы просмотреть или добавьте нового по кнопке ниже',
+        reply_markup=keyboard
+    )
+
+
 @admin_router.callback_query(F.data.startswith('admin:view'))
 async def admins_deeplink_view(call: types.CallbackQuery, state: FSMContext, db: Database):
     name = call.data.split(':')[-1]
