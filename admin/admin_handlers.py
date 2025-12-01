@@ -14,7 +14,7 @@ from admin import texts
 from admin.admin_keyboard import (admin_panel_menu, op_panel_button, cancel_op_panel_button, ad_urls_panel_button,
     cancel_urls_panel_button, ad_url_one_panel_button, op_url_one_bottom_panel, cancel_key_panel_button,
     api_keys_panel_button, cancel_copy_message, start_message_menu_keyboard, confirm_malling_keyboard,
-    get_partners_keyboard, partner_panel_menu, get_deeplinks_panel_button, deeplink_one_panel_button)
+    get_partners_keyboard, partner_panel_menu, get_deeplinks_panel_button, deeplink_one_panel_button, get_admins_button, admin_deeplink_view_keyboard)
 from admin.admin_states import (OpState, NameUrl, StartMessage,
     UpdateLinkOp, ApiKeyStates, SetStartMessageDelay, Malling, Partners, Deeplink)
 from admin.services import format_statistics_report
@@ -536,7 +536,7 @@ async def handle_partner_data(message: types.Message, db: Database):
     admins = await db.admins.get_all()
     keyboard = await get_partners_keyboard(admins)
     await message.answer(
-        text='Нажмите на партнера которого хотели бы удалить или добавьте нового по кнопке ниже',
+        text='Нажмите на партнера, ссылки которого вы хотели бы просмотреть или добавьте нового по кнопке ниже',
         reply_markup=keyboard
     )
 
@@ -565,8 +565,76 @@ async def get_partner(message: types.Message, db: Database, state: FSMContext):
     await message.answer('Партнер был успешно добавлен', reply_markup=admin_panel_menu())
 
 
+@admin_router.callback_query(F.data.startswith('partner_view'))
+async def show_partners_deeplinks(call: types.CallbackQuery, state: FSMContext, db: Database):
+    user_id = int(call.data.split('_')[-1])
+    await call.message.delete()
+    ad_urls = await db.deeplinks.get_all_admin(user_id)
+    await state.clear()
+    await state.update_data(page=0, user_id=user_id)
+    page = 0
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_admins_button(user_id, ad_urls, page))
+
+
+@admin_router.callback_query(F.data.startswith('admin_pager'))
+async def partners_deeplink_pager(call: types.CallbackQuery, state: FSMContext, db: Database):
+    await call.message.delete()
+    action = call.data.split('_')[-1]
+    data = await state.get_data()
+    page, user_id = data.get('page'), data.get('user_id')
+    if action == 'next':
+        page += 1
+    else:
+        page -= 1
+    await state.update_data(page=page)
+    ad_urls = await db.deeplinks.get_all_admin(user_id)
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_admins_button(user_id, ad_urls, page))
+
+
+@admin_router.callback_query(F.data.startswith('admin:view'))
+async def admins_deeplink_view(call: types.CallbackQuery, state: FSMContext, db: Database):
+    name = call.data.split(':')[-1]
+    ad_url_data = await db.deeplinks.get_by_name(name)
+    if not ad_url_data:
+        await call.answer("Ссылка не найдена", show_alert=True)
+        return
+
+    users = await db.user.get_users(deeplink=ad_url_data.name, passed=True)
+    active = 0
+    not_passed = 0
+    for user in users:
+        if user.active:
+            active += 1
+        if not user.passed:
+            not_passed += 1
+
+    text = texts.DEEPLINK_STATS_TEMPLATE.format(
+        name=ad_url_data.name,
+        unique_users=ad_url_data.unique_users,
+        requests=f'\nВсего запросов: {ad_url_data.requests}',
+        income=f'Куплено на: {ad_url_data.income} руб\n',
+        active=active,
+        not_active=len(users) - active,
+        passed=len(users),
+        not_passed=not_passed,
+        bot_name=config.BOT_NAME
+    )
+
+    keyboard = admin_deeplink_view_keyboard()
+    await call.message.edit_text(text, parse_mode='HTML', reply_markup=keyboard)
+
+
+@admin_router.callback_query(F.data == 'close_admin_view')
+async def back_deeplinks_view(call: types.CallbackQuery, state: FSMContext, db: Database):
+    data = await state.get_data()
+    page, user_id = data.get('page'), data.get('user_id')
+    await call.message.delete()
+    ad_urls = await db.deeplinks.get_all_admin(user_id)
+    await call.message.answer(texts.AD_URLS_MENU, reply_markup=get_admins_button(user_id, ad_urls, page))
+
+
 @admin_router.callback_query(F.data.startswith('partner_del'))
-async def del_partner(call: types.CallbackQuery, db: Database):
+async def del_partner(call: types.CallbackQuery, state: FSMContext, db: Database):
     user_id = int(call.data.split('_')[-1])
     await db.admins.delete(user_id)
     await call.answer('Партнер был успешно удален')
@@ -574,6 +642,7 @@ async def del_partner(call: types.CallbackQuery, db: Database):
 
     admins = await db.admins.get_all()
     keyboard = await get_partners_keyboard(admins)
+    await state.clear()
     await call.message.answer(
         text='Нажмите на партнера которого хотели бы удалить или добавьте нового по кнопке ниже',
         reply_markup=keyboard
