@@ -16,7 +16,10 @@ from utils.helpers import upload_image_to_imgbb, save_image, download_and_upload
 
 import config
 
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 client = AsyncOpenAI(
     api_key=config.openai_api_token,
@@ -105,6 +108,10 @@ async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images
             return message.content[0].text.value
 
 
+#assistant_id, thread_id = asyncio.run(get_assistant_and_thread())
+#asyncio.run(get_text_answer('Привет', assistant_id, thread_id))
+
+
 def find_image_links(text):
     # Регулярное выражение для поиска строк, начинающихся с ![gen и содержащих ссылку
     pattern = r'!\[gen[^\]]+\]\((https?://[^\s)]+)\)'
@@ -145,8 +152,12 @@ async def generate_division(prompt: str, bot: Bot, photos: list[Message]):
     #if counter % 2 == 0:
     if photos:
         images = await download_and_upload_images(bot, photos)
-    result = await generate_image_by_unifically(prompt, images)
-    if isinstance(result, dict):
+    try:
+        result = await generate_image_by_unifically(prompt, images)
+    except Exception as err:
+        logging.error(f'unifically generate error: {err}')
+        result = None
+    if isinstance(result, dict) or result is None:
         if photos:
             images = await save_bot_files(photos, bot)
         result = await generate_image_by_veo(prompt, images)
@@ -212,7 +223,7 @@ async def _polling_veo_generate(req_id: str) -> list[str] | dict:
                 status = data.get('status')
                 if status and status == 'failed':
                     return {'error': data['error']}
-                if not status and data['success']:
+                if status == 'completed':
                     image_data = data['images'][0]
                     try:
                         file_path = await save_image(image_data)
@@ -267,14 +278,15 @@ async def generate_image_by_veo(prompt: str, photos: list[str] = None) -> list[s
         async with session.post(url, data=data, headers=headers, ssl=False) as response:
             if response.status not in [200, 201]:
                 print(response.status)
+                print(await response.text())
                 return {'error': f"Request status code {response.status}"}
             data = await response.json()
             logger.info('Success input data load')
-            if data['status'] != 'queued':
+            if data['status'] not in ['queued', 'processing']:
                 return {'error': data['message']}
             req_id = data['request_id']
             logger.info('Success request_id save')
     return await _polling_veo_generate(req_id)
 
 
-#print(asyncio.run(generate_image('Сделай девушку азиатку', [])))
+#print(asyncio.run(generate_image_by_veo('Сделай фото мультяшного леопарда', [])))
