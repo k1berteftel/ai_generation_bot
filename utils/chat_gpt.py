@@ -122,8 +122,8 @@ def find_image_links(text):
     return matches
 
 
-async def _polling_unifically_generate(data: dict) -> list[str] | dict:
-    url = f'https://api.unifically.com/nano-banana/status/{data["data"]["task_id"]}'
+async def _polling_unifically_generate(task_id: str) -> list[str] | dict:
+    url = f'https://api.unifically.com/v1/tasks/{task_id}'
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {config.unifically_api_token}'
@@ -132,6 +132,7 @@ async def _polling_unifically_generate(data: dict) -> list[str] | dict:
         while True:
             async with client.get(url, headers=headers, ssl=False) as response:
                 if response.status not in [200, 201]:
+                    print(await response.text())
                     data = await response.json()
                     return {'error': data['data']['error']['message']}
                 data = await response.json()
@@ -183,14 +184,18 @@ async def generate_division(prompt: str, bot: Bot, photos: list[Message]):
 
 
 async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[str] | dict:
-    url = f'https://api.unifically.com/nano-banana/generate'
+    url = f'https://api.unifically.com/v1/tasks'
     #prompt = await translate_text(prompt)
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {config.unifically_api_token}'
     }
     data = {
-      "prompt": prompt,
+        "model": 'google/nano-banana',
+        "input": {
+            "prompt": prompt,
+            "aspect_ratio": '16:9'
+        }
     }
     if photos:
         data["image_urls"] = photos
@@ -198,6 +203,7 @@ async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[s
         async with client.post(url, headers=headers, json=data, ssl=False) as response:
             print(response.status)
             if response.status not in [200, 201]:
+                print(await response.text())
                 data = await response.json()
                 return {'error': data['data']['error']['message']}
             data = await response.json()
@@ -206,7 +212,8 @@ async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[s
             return {'error': data['data']['error']['message']}
         if data['data'].get('output'):
             return [data['data']['output']['image_url']]
-    return await _polling_unifically_generate(data)
+        task_id = data['data'].get('task_id')
+    return await _polling_unifically_generate(task_id)
 
 
 async def _polling_veo_generate(req_id: str) -> list[str] | dict:
