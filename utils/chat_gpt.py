@@ -198,7 +198,7 @@ async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[s
         }
     }
     if photos:
-        data["image_urls"] = photos
+        data["input"]["image_urls"] = photos
     async with aiohttp.ClientSession() as client:
         async with client.post(url, headers=headers, json=data, ssl=False) as response:
             print(response.status)
