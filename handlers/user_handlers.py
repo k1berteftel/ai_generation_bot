@@ -92,9 +92,6 @@ class RemindMiddleware(BaseMiddleware):
         for task in asyncio.all_tasks():
             if task.get_name() in [task_name_1, task_name_2]:
                 task.cancel()
-        keyboard_1 = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]]
-        )
 
         text_2 = ('Ты забыл обо мне? 😢\n\nА я тут готов помочь хоть сейчас — сделать генерацию из тренда или '
                   'решить любую задачу \n\nДавай попробуем еще раз🙌🏻')
@@ -106,9 +103,37 @@ class RemindMiddleware(BaseMiddleware):
         return await handler(event, data)
 
 
+class AddUrlMiddleware(BaseMiddleware):
+    async def __call__(
+            self,
+            handler: Callable[[types.Update, dict[str, Any]], Awaitable[Any]],
+            event: types.Update,
+            data: dict[str, Any],
+    ) -> Any:
+        state: FSMContext = data.get('state')
+        db: Database = data.get('db')
+        state_data = await state.get_data()
+        deeplink_name, is_new = state_data.get('deeplink'), state_data.get('is_new')
+        if deeplink_name:
+            event_from_user: User = data.get('event_from_user')
+            user = await db.user.get_user(event_from_user.id)
+            if is_new:
+                logging.info(f"User {user.id} is new, ad_url: {deeplink_name}. Updating unique stats.")
+                await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, unique_users=1)
+                await db.statistic.increment_counters(name='users', now_month=1)
+            else:
+                logging.info(f"User {user.id} is existing, ad_url: {deeplink_name}. Updating non-unique stats.")
+                await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, not_unique_users=1)
+            await state.update_data(deeplink=None, is_new=None)
+        return await handler(event, data)
+
+
 user_router.message.middleware(AlbumMiddleware())
+
 user_router.callback_query.middleware(RemindMiddleware())
 user_router.message.middleware(RemindMiddleware())
+
+user_router.callback_query.middleware(AddUrlMiddleware())
 
 
 class GenStates(StatesGroup):
@@ -305,13 +330,7 @@ async def cmd_start(message: types.Message, db: Database, state: FSMContext, bot
             await db.ad_url.increment_counters(name=url_name, all_users=1, not_unique_users=1)
 
     if deeplink_name:
-        if is_new:
-            logging.info(f"User {user.id} is new, ad_url: {deeplink_name}. Updating unique stats.")
-            await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, unique_users=1)
-            await db.statistic.increment_counters(name='users', now_month=1)
-        else:
-            logging.info(f"User {user.id} is existing, ad_url: {deeplink_name}. Updating non-unique stats.")
-            await db.deeplinks.increment_counters(name=deeplink_name, all_users=1, not_unique_users=1)
+        await state.update_data(deeplink=deeplink_name, is_new=is_new)
 
     op_answer = await check_user_op(db, bot, message.from_user.id)
     if op_answer is not None:

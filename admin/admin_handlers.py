@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from typing import Callable, Any, Awaitable
+from datetime import datetime
 
 from aiogram import Router, types, F, Bot, BaseMiddleware
 from aiogram.filters import Command, CommandObject
@@ -67,6 +68,35 @@ async def deeplinks_handler(message: types.Message, db: Database, state: FSMCont
     await message.answer(texts.AD_URLS_MENU, reply_markup=get_deeplinks_panel_button(ad_urls, page))
 
 
+@admin_router.message(Command('refs'))
+async def deeplinks_show(message: types.Message, db: Database):
+    if message.from_user.id in list_admins:
+        ad_urls = await db.deeplinks.get_all()
+    else:
+        ad_urls = await db.deeplinks.get_all_admin(message.from_user.id)
+
+    def apply_division(value, division: bool):
+        if division:
+            return round(value / 1.15, 0)
+        return value
+
+    all_users = 0
+    counter = 1
+    text = '<b>Ваши ссылки:</b>\n'
+    for ad_url in ad_urls:
+        division = False
+        if message.from_user.id not in list_admins:
+            # Проверяем, создана ли ссылка после 2 марта 2026 года
+            target_date = datetime(2026, 3, 2)
+            if ad_url.create and ad_url.create > target_date:
+                division = True
+        users = apply_division(ad_url.all_users, division)
+        text += f'{counter}. {ad_url.name} - {apply_division(users, division)}\n'
+        all_users += users
+        counter += 1
+    text += f'<b>Всего:</b> {all_users}'
+
+
 @admin_router.callback_query(F.data.startswith('partner_pager'))
 async def deeplinks_pager(call: types.CallbackQuery, db: Database, state: FSMContext):
     await call.message.delete()
@@ -101,15 +131,28 @@ async def _show_single_deeplink_stats(user_id: int, call: types.CallbackQuery, d
         if not user.passed:
             not_passed += 1
 
+    need_division = False
+    if user_id not in list_admins:
+        # Проверяем, создана ли ссылка после 2 марта 2026 года
+        target_date = datetime(2026, 3, 2)
+        if ad_url_data.create and ad_url_data.create > target_date:
+            need_division = True
+
+    # Функция для деления с округлением
+    def apply_division(value):
+        if need_division:
+            return round(value / 1.15, 0)
+        return value
+
     text = texts.DEEPLINK_STATS_TEMPLATE.format(
         name=ad_url_data.name,
-        unique_users=ad_url_data.unique_users,
+        unique_users=apply_division(ad_url_data.unique_users),
         requests=f'\nВсего запросов: {ad_url_data.requests}' if user_id in list_admins else '',
         income=f'Куплено на: {ad_url_data.income} руб\n' if user_id in list_admins else '',
-        active=active,
-        not_active=len(users) - active,
-        passed=len(users),
-        not_passed=not_passed,
+        active=apply_division(active),
+        not_active=apply_division(len(users)) - apply_division(active),
+        passed=apply_division(len(users)),
+        not_passed=apply_division(not_passed),
         bot_name=config.BOT_NAME
     )
     if is_update:
