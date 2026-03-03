@@ -68,7 +68,7 @@ async def deeplinks_handler(message: types.Message, db: Database, state: FSMCont
     await message.answer(texts.AD_URLS_MENU, reply_markup=get_deeplinks_panel_button(ad_urls, page))
 
 
-@admin_router.message(Command('refs'))
+@admin_router.message(Command('referrals'))
 async def deeplinks_show(message: types.Message, db: Database):
     print('here')
     if message.from_user.id in list_admins:
