@@ -86,12 +86,11 @@ async def deeplinks_show(message: types.Message, db: Database):
     for ad_url in ad_urls:
         division = False
         if message.from_user.id not in list_admins:
-            # Проверяем, создана ли ссылка после 2 марта 2026 года
             target_date = datetime(2026, 3, 2)
             if ad_url.create and ad_url.create > target_date:
                 division = True
         users = apply_division(ad_url.all_users, division)
-        text += f'{counter}. {ad_url.name} - {apply_division(users, division)}\n'
+        text += f'{counter}. {ad_url.name} - {users}\n'
         all_users += users
         counter += 1
     text += f'<b>Всего:</b> {all_users}'
