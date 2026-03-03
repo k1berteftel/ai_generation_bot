@@ -70,6 +70,7 @@ async def deeplinks_handler(message: types.Message, db: Database, state: FSMCont
 
 @admin_router.message(Command('refs'))
 async def deeplinks_show(message: types.Message, db: Database):
+    print('here')
     if message.from_user.id in list_admins:
         ad_urls = await db.deeplinks.get_all()
     else:
