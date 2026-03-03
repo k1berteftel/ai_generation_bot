@@ -95,6 +95,7 @@ async def deeplinks_show(message: types.Message, db: Database):
         all_users += users
         counter += 1
     text += f'<b>Всего:</b> {all_users}'
+    await message.answer(text)
 
 
 @admin_router.callback_query(F.data.startswith('partner_pager'))
