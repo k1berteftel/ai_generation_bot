@@ -77,7 +77,7 @@ async def deeplinks_show(message: types.Message, db: Database):
 
     def apply_division(value, division: bool):
         if division:
-            return round(value / 1.15, 0)
+            return int(round(value / 1.15, 0)) if value else value
         return value
 
     all_users = 0
@@ -141,7 +141,7 @@ async def _show_single_deeplink_stats(user_id: int, call: types.CallbackQuery, d
     # Функция для деления с округлением
     def apply_division(value):
         if need_division:
-            return round(value / 1.15, 0)
+            return int(round(value / 1.15, 0)) if value else value
         return value
 
     text = texts.DEEPLINK_STATS_TEMPLATE.format(
