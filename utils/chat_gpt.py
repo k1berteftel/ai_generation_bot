@@ -209,7 +209,7 @@ async def _polling_apimart_generate(task_id: str):
                 if data['data'].get('status') == 'failed':
                     return {'error': data['data']['error'].get('message')}
                 if data['data'].get('status') == 'completed':
-                    return data['data']['result']['images'][0].get('url')[0]
+                    return data['data']['result']['images'][0].get('url')
                 await asyncio.sleep(3)
 
 
@@ -234,6 +234,8 @@ async def generate_image_by_apimart(prompt: str, photos: list[str]):
             data = await response.json()
             task_id = data['data'][0].get('task_id')
     return await _polling_apimart_generate(task_id)
+
+#asyncio.run(generate_image_by_apimart('Сделай красивое фото облаков спукающихся с водопада', []))
 
 
 #print(asyncio.run(generate_image_by_veo('Сделай фото мультяшного леопарда', [])))
