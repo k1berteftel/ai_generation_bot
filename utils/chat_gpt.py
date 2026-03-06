@@ -148,39 +148,17 @@ counter = 1
 
 
 async def generate_division(prompt: str, bot: Bot, photos: list[Message]):
-    global counter
     images = []
-    #if counter % 2 == 0:
     if photos:
         images = await download_and_upload_images(bot, photos)
     try:
-        result = await generate_image_by_unifically(prompt, images)
+        result = await generate_image_by_apimart(prompt, images)
     except Exception as err:
         logging.error(f'unifically generate error: {err}')
         result = None
     if isinstance(result, dict) or result is None:
-        if photos:
-            images = await save_bot_files(photos, bot)
-        result = await generate_image_by_veo(prompt, images)
-        for image in images:
-            if os.path.exists(image):
-                os.remove(image)
+        result = await generate_image_by_unifically(prompt, images)
     return result
-"""
-    else:
-        if photos:
-            images = await save_bot_files(photos, bot)
-        result = await generate_image_by_veo(prompt, images)
-        for image in images:
-            if os.path.exists(image):
-                os.remove(image)
-        if isinstance(result, dict):
-            if photos:
-                images = await download_and_upload_images(bot, photos)
-            result = await generate_image_by_unifically(prompt, images)
-    counter += 1
-    return result
-"""
 
 
 async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[str] | dict:
@@ -216,84 +194,46 @@ async def generate_image_by_unifically(prompt: str, photos: list[str]) -> list[s
     return await _polling_unifically_generate(task_id)
 
 
-async def _polling_veo_generate(req_id: str) -> list[str] | dict:
-    url = f'http://95.164.55.41:8765/v1/gemini/image-status/{req_id}'
-    headers = {'Authorization': f'Bearer {config.veo_gen_key}'}
-    logger.info('Start image generate polling')
-    async with aiohttp.ClientSession() as session:
-        counter = 1
-        while True:
+async def _polling_apimart_generate(task_id: str):
+    url = f'https://api.apimart.ai/v1/tasks/{task_id}'
+    headers = {
+        "Authorization": f"Bearer {config.apimart_api_key}",
+    }
+    while True:
+        async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, ssl=False) as response:
-                if response.status not in [200, 201]:
-                    return {'error': f"Request status code {response.status}"}
+                if response.status != 200:
+                    return {'error': await response.text()}
                 data = await response.json()
-                status = data.get('status')
-                if status and status == 'failed':
-                    return {'error': data['error']}
-                if status == 'completed':
-                    image_data = data['images'][0]
-                    try:
-                        file_path = await save_image(image_data)
-                    except Exception as e:
-                        return {'error': str(e)}
-                    file_url = await upload_image_to_imgbb(file_path)
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    if not file_url:
-                        return {'error': "ImgBB error"}
-                    return [file_url]
-            logger.info(f'Polling retry: {counter}')
-            counter += 1
-            await asyncio.sleep(3)
+                print(data)
+                if data['data'].get('status') == 'failed':
+                    return {'error': data['data']['error'].get('message')}
+                if data['data'].get('status') == 'completed':
+                    return data['data']['result']['images'][0].get('url')[0]
+                await asyncio.sleep(3)
 
 
-async def generate_image_by_veo(prompt: str, photos: list[str] = None) -> list[str] | dict:
-    url = "http://95.164.55.41:8765/v1/gemini/generate-image-async"
-    data = aiohttp.FormData()
-    data.add_field('prompt', prompt)
-
-    opened_files = []
+async def generate_image_by_apimart(prompt: str, photos: list[str]):
+    url = 'https://api.apimart.ai/v1/images/generations'
+    headers = {
+        "Authorization": f"Bearer {config.apimart_api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "gemini-2.5-flash-image-preview",
+        "prompt": prompt,
+        "size": "16:9",
+        "resolution": "1K",
+    }
     if photos:
-        for image_path in photos:
-            if not Path(image_path).exists():
-                raise FileNotFoundError(f"Файл {image_path} не найден")
-
-            file_obj = open(image_path, 'rb')
-            opened_files.append(file_obj)
-
-            ext = Path(image_path).suffix.lower()
-            mime_types = {
-                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.png': 'image/png', '.gif': 'image/gif',
-                '.webp': 'image/webp', '.bmp': 'image/bmp',
-                '.tiff': 'image/tiff', '.tif': 'image/tiff'
-            }
-            mime_type = mime_types.get(ext, 'image/jpeg')
-
-            data.add_field(
-                'reference_images',
-                file_obj.read(),
-                filename=Path(image_path).name,
-                content_type=mime_type
-            )
-    for file in opened_files:
-        file.close()
-
-    headers = {'Authorization': f'Bearer {config.veo_gen_key}'}
-
+        data['image_urls'] = photos
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=data, headers=headers, ssl=False) as response:
-            if response.status not in [200, 201]:
-                print(response.status)
-                print(await response.text())
-                return {'error': f"Request status code {response.status}"}
+        async with session.post(url, json=data, headers=headers, ssl=False) as response:
+            if response.status != 200:
+                return {'error': await response.text()}
             data = await response.json()
-            logger.info('Success input data load')
-            if data['status'] not in ['queued', 'processing']:
-                return {'error': data['message']}
-            req_id = data['request_id']
-            logger.info('Success request_id save')
-    return await _polling_veo_generate(req_id)
+            task_id = data['data'][0].get('task_id')
+    return await _polling_apimart_generate(task_id)
 
 
 #print(asyncio.run(generate_image_by_veo('Сделай фото мультяшного леопарда', [])))
