@@ -86,11 +86,10 @@ class RemindMiddleware(BaseMiddleware):
     ) -> Any:
         event_from_user: User = data.get('event_from_user')
         bot: Bot = data.get('bot')
-        task_name_1 = f'{event_from_user.id}_2_remind'
         task_name_2 = f'{event_from_user.id}_7_remind'
 
         for task in asyncio.all_tasks():
-            if task.get_name() in [task_name_1, task_name_2]:
+            if task.get_name() in [task_name_2]:
                 task.cancel()
 
         text_2 = ('Ты забыл обо мне? 😢\n\nА я тут готов помочь хоть сейчас — сделать генерацию из тренда или '
