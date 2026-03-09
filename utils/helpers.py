@@ -6,6 +6,7 @@ import logging
 import os
 import string
 import random
+import tempfile
 from pathlib import Path
 
 import aiofiles
@@ -14,6 +15,7 @@ import requests
 
 
 from aiogram import Bot, types
+from aiogram.types import PhotoSize
 from aiogram.fsm.context import FSMContext
 
 import config
@@ -238,4 +240,46 @@ async def save_bot_files(msgs: list[types.Message], bot: Bot):
 
 async def clear_context(state: FSMContext, period: int):
     await asyncio.sleep(period)
-    await state.update_data(assistant_id=None, thread_id=None)
+    await state.update_data(messages=None)
+
+
+async def photo_to_base64(photo: PhotoSize, bot: Bot) -> tuple[str, str] | None:
+    """
+    Конвертирует PhotoSize из Telegram в base64 и автоматически удаляет файл.
+
+    Args:
+        photo: Объект PhotoSize от aiogram
+        bot: Экземпляр бота для скачивания файла
+
+    Returns:
+        Tuple[str, str] - (base64_data, media_type) или None в случае ошибки
+        media_type всегда 'image/jpeg' для фото Telegram
+    """
+    # Создаем временный файл с уникальным именем
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+        temp_path = tmp_file.name
+
+    try:
+        # Скачиваем файл через бота
+        file = await bot.get_file(photo.file_id)
+        await bot.download_file(file.file_path, destination=temp_path)
+
+        # Читаем и кодируем в base64
+        async with aiofiles.open(temp_path, 'rb') as f:
+            file_content = await f.read()
+            base64_data = base64.b64encode(file_content).decode('utf-8')
+
+        # Для фото Telegram всегда JPEG
+        return (base64_data, 'image/jpeg')
+
+    except Exception as e:
+        print(f"Ошибка при обработке фото: {e}")
+        return None
+
+    finally:
+        # Гарантированно удаляем временный файл
+        try:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        except Exception:
+            ...

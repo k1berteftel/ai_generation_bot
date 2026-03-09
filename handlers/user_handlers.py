@@ -8,7 +8,7 @@ import json
 from typing import Callable, Any, Awaitable
 
 from aiogram import Router, F, types, Bot, BaseMiddleware
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton, Message, InputMediaPhoto, \
@@ -32,7 +32,7 @@ from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
     download_and_upload_images, check_user_op_single, upload_image_to_imgbb, clear_context
-from utils.chat_gpt import get_text_answer, generate_division, get_assistant_and_thread, solve_task
+from utils.chat_gpt import get_ai_answer, generate_division, solve_task
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
@@ -533,8 +533,7 @@ async def student_dialog(callback: types.CallbackQuery, state: FSMContext):
     text = ('Я готов ответить на любые вопросы и помочь вам с учебными задачами'
             '\nСпроси что-нибудь прямо сейчас!')
     prompt = 'Ты помощник в учебных вопросах и отвечаешь только на вопросы связанные с учебой'
-    assistant_id, thread_id = await get_assistant_and_thread(role=prompt)
-    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    await state.update_data(prompt=prompt)
     await callback.message.delete()
     await callback.message.answer(
         text=text,
@@ -543,7 +542,7 @@ async def student_dialog(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message(F.text, DialogStates.question_answer)
+@user_router.message(DialogStates.question_answer, or_f(F.photo, F.text))
 async def question_answer(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
@@ -554,13 +553,21 @@ async def question_answer(message: types.Message, state: FSMContext):
         ...
     msg_to_del = await message.answer('✍️')
     state_data = await state.get_data()
-    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
+    system_prompt = state_data.get('prompt')
+    messages = state_data.get('messages')
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='for_students')]])
-    prompt = message.text if message.text else message.caption
-    answer = await get_text_answer(prompt, assistant_id, thread_id)
+    image = message.photo[-1] if message.photo else None
+    prompt = message.text if not image else message.caption
+    try:
+        answer = await get_ai_answer(prompt, message.bot, image, messages, system_prompt if system_prompt else None)
+    except Exception:
+        answer = None
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    else:
+        answer, messages = answer[0], answer[1]
+        await state.update_data(messages=messages)
     await msg_to_del.delete()
     await message.answer(answer, reply_markup=keyboard)
 
@@ -601,13 +608,13 @@ async def process_task(message: types.Message, db: Database, state: FSMContext):
                              reply_markup=balance_choose_menu())
         return
     msg = await message.answer(f"{status_message} Это будет стоить {cost} 💎")
-    images = await download_and_upload_images(message.bot, [message])
+    image = msg.photo[-1]
     prompt = message.caption
     msg_to_del = await message.answer('✍️')
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='⬅️ Назад', callback_data='for_students')]])
     try:
-        answer = await solve_task(images, prompt)
+        answer = await solve_task(image, message.bot, prompt)
     except Exception as err:
         print(err)
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
@@ -1156,8 +1163,6 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='back_main')]])
     text = ('🤖 SUPER GPT активен!\n\nЯ готов ответить на любые вопросы и помочь с идеями'
             '\nСпроси что-нибудь прямо сейчас!')
-    assistant_id, thread_id = await get_assistant_and_thread()
-    await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
     await callback.message.delete()
     await callback.message.answer_photo(
         photo=FSInputFile(path='medias/start_gpt.jpg'),
@@ -1167,7 +1172,7 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@user_router.message(F.text)
+@user_router.message(or_f(F.photo, F.text))
 async def answer_gpt(message: types.Message, state: FSMContext):
     try:
         await message.bot.edit_message_reply_markup(
@@ -1178,17 +1183,21 @@ async def answer_gpt(message: types.Message, state: FSMContext):
         ...
     msg_to_del = await message.answer('✍️')
     state_data = await state.get_data()
-    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
-    if not assistant_id or not thread_id:
-        assistant_id, thread_id = await get_assistant_and_thread()
-        await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    system_prompt = state_data.get('prompt')
+    messages = state_data.get('messages')
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
-    images = await download_and_upload_images(message.bot, [message])
-    prompt = message.text if message.text else message.caption
-    answer = await get_text_answer(prompt, assistant_id, thread_id, images)
+    image = message.photo[-1] if message.photo else None
+    prompt = message.text if not image else message.caption
+    try:
+        answer = await get_ai_answer(prompt, message.bot, image, messages, system_prompt if system_prompt else None)
+    except Exception:
+        answer = None
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
+    else:
+        answer, messages = answer[0], answer[1]
+        await state.update_data(messages=messages)
     await msg_to_del.delete()
     await message.answer(answer, reply_markup=keyboard)
     task_name = f'{message.from_user.id}_context'

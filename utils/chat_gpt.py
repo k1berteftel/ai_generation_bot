@@ -11,11 +11,12 @@ from PIL import Image
 import httpx
 import aiohttp
 
+from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
 from aiogram import Bot
-from aiogram.types import Message
+from aiogram.types import Message, PhotoSize
 
-from utils.helpers import upload_image_to_imgbb, save_image, download_and_upload_images, save_bot_files
+from utils.helpers import upload_image_to_imgbb, save_image, download_and_upload_images, save_bot_files, photo_to_base64
 
 import config
 
@@ -24,10 +25,12 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 logger = logging.getLogger(__name__)
 
 
-client = AsyncOpenAI(
-    api_key=config.openai_api_token,
-    http_client=httpx.AsyncClient(proxy='http://6L4YePzU:Mrnd5Tsy@212.193.143.10:63196')
+client = AsyncAnthropic(
+    api_key=config.apimart_api_key,
+    base_url="https://api.apimart.ai",
+    #http_client=httpx.AsyncClient(proxy='http://6L4YePzU:Mrnd5Tsy@212.193.143.10:63196')
 )
+
 
 
 FORMATS_API = [
@@ -231,8 +234,7 @@ async def determine_best_format(
     return default_format
 
 
-async def solve_task(images: list[str], prompt: str | None = None):
-    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
+async def solve_task(image: PhotoSize, bot: Bot, prompt: str | None = None):
     system_prompt = ("Реши задачу и представь решение в понятном, читаемом формате без "
                      "использования LaTeX и боксов. Используй обычные математические "
                      "символы и простым языком, пошагово объясняй каждое свое "
@@ -240,80 +242,70 @@ async def solve_task(images: list[str], prompt: str | None = None):
                      "возвращай строго в формате <code>действие</code>")
     prompt = system_prompt if not prompt else system_prompt + (f'\nВот пользовательский промпт к '
                                                                f'решению задачи: "{prompt}"')
-    response = await client.chat.completions.create(
-        model="gpt-5",
-        messages=[
+    messages = []
+    if image:
+        data, media_type = await photo_to_base64(image, bot)
+        messages.append(
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
-                    *images
-                ]
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": data,
+                        },
+                    },
+                    {"type": "text", "text": prompt} if prompt else ...
+                ],
             }
-        ],
+        )
+    else:
+        messages.append({"role": "user", "content": prompt})
+    message = await client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1024,
+        system=prompt,
+        messages=messages
     )
-    print(response.usage.total_tokens, response.usage.prompt_tokens, response.usage.completion_tokens)
-    print(response.choices[0].message.content)
-    return response.choices[0].message.content
+    answer = message.content[0].text
+    return answer
 
 
-async def get_assistant_and_thread(model: str = 'gpt-4.1-mini', role: str | None = None):
-    """
-    :param model: модель чата гпт
-    :return: Две str переменной по факту являющиеся уникальными для каждого юзера, чтобы обрабатывать их
-        диалог отдельно от других юзеров
-    """
-    assistant = await client.beta.assistants.create(
-        model=model,
-        instructions=role,
-        temperature=1.0,
-        name="Яна"
+async def get_ai_answer(prompt: str | None, bot: Bot, image: PhotoSize | None = None, messages: list[dict] = None, system_prompt: str = None) -> tuple[str, list]:
+    if not messages:
+        messages = []
+
+    if image:
+        data, media_type = await photo_to_base64(image, bot)
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": data,
+                        },
+                    },
+                    {"type": "text", "text": prompt} if prompt else ...
+                ],
+            }
+        )
+    else:
+        messages.append({"role": "user", "content": prompt})
+    message = await client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1024,
+        system=system_prompt,
+        messages=messages
     )
-
-    thread = await client.beta.threads.create()
-    return assistant.id, thread.id
-
-
-#print(asyncio.run(get_assistant_and_thread()))
-
-
-async def get_text_answer(prompt: str, assistant_id: str, thread_id: str, images: list[str] = None) -> str | dict | None:
-    """
-        Обработка ИИшкой сообщения юзера, возвращает ответ ИИ
-    """
-    images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
-    print(assistant_id, thread_id)
-    content = []
-    if prompt:
-        content.append({"type": "text", "text": prompt})
-    if images:
-        content.extend(images)
-    message = await client.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=content
-    )
-    print(message.__dict__)
-    run = await client.beta.threads.runs.create_and_poll(
-        thread_id=thread_id,
-        assistant_id=assistant_id
-    )
-    print(run.status)
-    print(run.last_error)
-    info = (f'Стоимость запроса: {run.usage.completion_tokens}\nСтоимость промпта: {run.usage.prompt_tokens}'
-            f'\nОбщая стоимость: {run.usage.total_tokens}')
-    print(info)
-    if run.status == "completed":
-        messages = await client.beta.threads.messages.list(thread_id=thread_id)
-        # print(messages)
-
-        async for message in messages:
-            print(message.content[0].text.value)
-            return message.content[0].text.value
-
-
-#assistant_id, thread_id = asyncio.run(get_assistant_and_thread())
-#asyncio.run(get_text_answer('Привет', assistant_id, thread_id))
+    answer = message.content[0].text
+    messages.append({"role": "assistant", "content": answer})
+    return answer, messages
 
 
 def find_image_links(text):

@@ -1,5 +1,6 @@
 asyncpg
 aiogram
+anthropic
 sqlalchemy
 greenlet
 cryptography
