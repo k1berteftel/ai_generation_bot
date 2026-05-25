@@ -28,7 +28,12 @@ logger = logging.getLogger(__name__)
 client = AsyncAnthropic(
     api_key=config.apimart_api_key,
     base_url="https://api.apimart.ai",
-    #http_client=httpx.AsyncClient(proxy='http://6L4YePzU:Mrnd5Tsy@212.193.143.10:63196')
+)
+
+http_client = httpx.AsyncClient(proxy='http://6L4YePzU:Mrnd5Tsy@212.193.143.10:63196')
+gpt_client = AsyncOpenAI(
+    api_key=config.openai_api_token,
+    http_client=http_client
 )
 
 
@@ -273,39 +278,91 @@ async def solve_task(image: PhotoSize, bot: Bot, prompt: str | None = None):
     return answer
 
 
-async def get_ai_answer(prompt: str | None, bot: Bot, image: PhotoSize | None = None, messages: list[dict] = None, system_prompt: str = None) -> tuple[str, list]:
-    if not messages:
-        messages = []
-
-    if image:
-        data, media_type = await photo_to_base64(image, bot)
-        messages.append(
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": data,
-                        },
-                    },
-                    {"type": "text", "text": prompt} if prompt else ...
-                ],
-            }
-        )
-    else:
-        messages.append({"role": "user", "content": prompt})
-    message = await client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        system=system_prompt,
-        messages=messages
+async def get_assistant_and_thread(model: str = 'gpt-4.1-mini', role: str | None = None):
+    """
+    :param model: модель чата гпт
+    :return: Две str переменной по факту являющиеся уникальными для каждого юзера, чтобы обрабатывать их
+        диалог отдельно от других юзеров
+    """
+    assistant = await gpt_client.beta.assistants.create(
+        model=model,
+        instructions=role,
+        temperature=1.0,
+        name="Яна"
     )
-    answer = message.content[0].text
-    messages.append({"role": "assistant", "content": answer})
-    return answer, messages
+
+    thread = await gpt_client.beta.threads.create()
+    return assistant.id, thread.id
+
+
+#print(asyncio.run(get_assistant_and_thread()))
+
+
+async def get_ai_answer(prompt: str, assistant_id: str, thread_id: str, images: list[str] = None) -> str | dict | None:
+    """
+        Обработка ИИшкой сообщения юзера, возвращает ответ ИИ
+    """
+    if images:
+        images = [{'type': 'image_url', "image_url": {"url": photo}} for photo in images]
+    content = []
+    if prompt:
+        content.append({"type": "text", "text": prompt})
+    if images:
+        content.extend(images)
+    message = await gpt_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=content
+    )
+    print(message.__dict__)
+    run = await gpt_client.beta.threads.runs.create_and_poll(
+        thread_id=thread_id,
+        assistant_id=assistant_id
+    )
+    logger.info(run.status)
+    logger.info(run.last_error)
+    info = (f'Стоимость запроса: {run.usage.completion_tokens}\nСтоимость промпта: {run.usage.prompt_tokens}'
+            f'\nОбщая стоимость: {run.usage.total_tokens}')
+    logger.info(info)
+    if run.status == "completed":
+        messages = await gpt_client.beta.threads.messages.list(thread_id=thread_id)
+        logger.info(messages)
+
+        async for message in messages:
+            logger.info(message.content[0].text.value)
+            return message.content[0].text.value
+    # if not messages:
+    #     messages = []
+    #
+    # if image:
+    #     data, media_type = await photo_to_base64(image, bot)
+    #     messages.append(
+    #         {
+    #             "role": "user",
+    #             "content": [
+    #                 {
+    #                     "type": "image",
+    #                     "source": {
+    #                         "type": "base64",
+    #                         "media_type": media_type,
+    #                         "data": data,
+    #                     },
+    #                 },
+    #                 {"type": "text", "text": prompt} if prompt else ...
+    #             ],
+    #         }
+    #     )
+    # else:
+    #     messages.append({"role": "user", "content": prompt})
+    # message = await client.messages.create(
+    #     model="claude-haiku-4-5-20251001",
+    #     max_tokens=1024,
+    #     system=system_prompt,
+    #     messages=messages
+    # )
+    # answer = message.content[0].text
+    # messages.append({"role": "assistant", "content": answer})
+    # return answer, messages
 
 
 def find_image_links(text):
@@ -351,7 +408,7 @@ async def generate_division(prompt: str, bot: Bot, photos: list[Message]):
         images = await download_and_upload_images(bot, photos)
     try:
         logger.info('Start first apimart try')
-        result = await generate_image_by_apimart(prompt, images, '3.1')
+        result = await generate_image_by_apimart(prompt, images, '2.5')
     except Exception as err:
         logging.error(f'3.1 generate error: {err}')
         result = None

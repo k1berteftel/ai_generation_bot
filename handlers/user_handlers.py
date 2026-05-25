@@ -32,7 +32,7 @@ from services.replicate_api import generate_replicate_async
 from services.payment_service import check_payment
 from utils.helpers import calculate_generation_cost, get_crystal_price_str, download_video, check_user_op, \
     download_and_upload_images, check_user_op_single, upload_image_to_imgbb, clear_context
-from utils.chat_gpt import get_ai_answer, generate_division, solve_task
+from utils.chat_gpt import get_ai_answer, generate_division, solve_task, get_assistant_and_thread
 from APIKeyManager.apikeymanager import APIKeyManager
 
 user_router = Router()
@@ -551,24 +551,19 @@ async def question_answer(message: types.Message, state: FSMContext):
         )
     except Exception:
         ...
-    msg_to_del = await message.answer('✍️')
-    state_data = await state.get_data()
-    system_prompt = state_data.get('prompt')
-    messages = state_data.get('messages')
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text='Закончить диалог ✖️', callback_data='for_students')]])
     image = message.photo[-1] if message.photo else None
-    prompt = message.text if not image else message.caption
-    try:
-        answer = await get_ai_answer(prompt, message.bot, image, messages, system_prompt if system_prompt else None)
-    except Exception:
-        answer = None
+    state_data = await state.get_data()
+    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
+    system_prompt = state_data.get('prompt')
+    if not assistant_id or not thread_id:
+        assistant_id, thread_id = await get_assistant_and_thread(role=system_prompt)
+        await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    prompt = message.text
+    answer = await get_ai_answer(prompt, assistant_id, thread_id)
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
-    else:
-        answer, messages = answer[0], answer[1]
-        await state.update_data(messages=messages)
-    await msg_to_del.delete()
     await message.answer(answer, reply_markup=keyboard)
 
 
@@ -1174,6 +1169,8 @@ async def start_gpt_chat(callback: types.CallbackQuery, state: FSMContext):
 
 @user_router.message(or_f(F.photo, F.text))
 async def answer_gpt(message: types.Message, state: FSMContext):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
     try:
         await message.bot.edit_message_reply_markup(
             chat_id=message.from_user.id,
@@ -1181,24 +1178,15 @@ async def answer_gpt(message: types.Message, state: FSMContext):
         )
     except Exception:
         ...
-    msg_to_del = await message.answer('✍️')
     state_data = await state.get_data()
-    system_prompt = state_data.get('prompt')
-    messages = state_data.get('messages')
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text='⬅️В главное меню', callback_data='back_main')]])
-    image = message.photo[-1] if message.photo else None
-    prompt = message.text if not image else message.caption
-    try:
-        answer = await get_ai_answer(prompt, message.bot, image, messages, system_prompt if system_prompt else None)
-    except Exception:
-        answer = None
+    assistant_id, thread_id = state_data.get('assistant_id'), state_data.get('thread_id')
+    if not assistant_id or not thread_id:
+        assistant_id, thread_id = await get_assistant_and_thread()
+        await state.update_data(assistant_id=assistant_id, thread_id=thread_id)
+    prompt = message.text
+    answer = await get_ai_answer(prompt, assistant_id, thread_id)
     if not answer:
         answer = '❗️Во время операции произошла какая-то ошибка, пожалуйста попробуйте снова'
-    else:
-        answer, messages = answer[0], answer[1]
-        await state.update_data(messages=messages)
-    await msg_to_del.delete()
     await message.answer(answer, reply_markup=keyboard)
     task_name = f'{message.from_user.id}_context'
     for task in asyncio.all_tasks():
