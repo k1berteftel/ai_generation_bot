@@ -125,7 +125,7 @@ async def check_user_op(db, bot: Bot, user_id: int):
 
 
 async def upload_image_to_imgbb(image_path: str) -> str | None:
-    url = 'https://files.storagecdn.online/upload'
+    url = 'https://files.unifically.com/upload'
 
     data = aiohttp.FormData()
     data.add_field('file',
